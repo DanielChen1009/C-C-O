@@ -1,4 +1,3 @@
-
 $(document).ready(init);
 
 let session;
@@ -43,15 +42,15 @@ class Session {
                 square.addClass("square");
                 if (!piece) continue;
                 square.addClass("piece");
-                square.addClass(piece.name() + (piece.color() == WHITE ? "white" : "black"));
+                square.addClass(piece.name() + (piece.color() === WHITE ? "white" : "black"));
             }
         }
-        if (this.game.selected != null) {
+        if (this.game.selected) {
             let squareID = this.game.selected.position.toID();
             let square = $("#" + squareID);
             square.addClass("select");
         }
-        if (this.game.legalMoves != null) {
+        if (this.game.legalMoves) {
             console.log(this.game.legalMoves);
 
 
@@ -75,7 +74,7 @@ class Session {
                 button.addClass("square");
                 button.attr("type", "button");
                 button.attr("id", i * 8 + j);
-                button.attr("onclick", "session.handleClick(this.id)");
+                button.click(() => session.handleClick(i * 8 + j));
                 cell.append(button);
                 row.append(cell);
             }
@@ -120,14 +119,14 @@ class Game {
     }
 
     handleInput(r, c) {
-        if (this.legalMoves != null) {
+        if (this.legalMoves) {
             for (let move of this.legalMoves) {
                 if (move.position.equals(r, c)) {
-                    if(!this.selected.moved) this.selected.moved = true;
+                    if (!this.selected.moved) this.selected.moved = true;
                     move.apply();
                     this.legalMoves = null;
                     this.selected = null;
-                    this.turn = this.turn == WHITE ? BLACK : WHITE;
+                    this.turn = this.turn === WHITE ? BLACK : WHITE;
                     return;
                 }
             }
@@ -136,28 +135,28 @@ class Game {
                 this.selected = null;
             } else {
                 let piece = this.board[r][c];
-                if (piece.color() != this.turn) return;
+                if (piece.color() !== this.turn) return;
                 this.selected = this.board[r][c];
                 this.legalMoves = this.selected.legalMoves();
             }
         } else {
             let piece = this.board[r][c];
-            if (piece.color() != this.turn) return;
+            if (piece.color() !== this.turn) return;
             this.selected = piece;
 
 
-            this.legalMoves = this.selected == null ?
-                null : this.selected.legalMoves();
+            this.legalMoves = this.selected ?
+                this.selected.legalMoves() : null;
         }
 
     }
 
     checkForCheck() {
-        let oppColor = this.turn == WHITE ? BLACK : WHITE;
+        let oppColor = this.turn === WHITE ? BLACK : WHITE;
         for (let i = 0; i < 8; ++i) {
             for (let j = 0; j < 8; ++j) {
                 let piece = this.board[i][j];
-                if (piece != null && piece.color() == oppColor){
+                if (piece && piece.color() === oppColor) {
                     let moves = piece.legalMoves();
                     for (let move of moves) {
                         if (move.isCheck(this.turn)) {
@@ -186,11 +185,10 @@ class Piece {
         let r = this.position.row + dR;
         let c = this.position.col + dC;
 
-        if(r > 7 || r < 0) return false;
-        if(c > 7 || c < 0) return false;
-        if(this.pieceBoard[r][c] == null) return true;
-        if(this.pieceBoard[r][c].mycolor == this.mycolor) return false;
-        return true;
+        if (r > 7 || r < 0) return false;
+        if (c > 7 || c < 0) return false;
+        if (!this.pieceBoard[r][c]) return true;
+        return this.pieceBoard[r][c].mycolor !== this.mycolor;
     }
 
     getPiece(dR, dC) {
@@ -198,7 +196,7 @@ class Piece {
     }
 
     isEnemy(piece) {
-        return piece && piece.color() != this.color();
+        return piece && piece.color() !== this.color();
     }
 
     getMove(dR, dC) {
@@ -214,7 +212,7 @@ class Piece {
                 if (this.isValidSquare(dR, dC)) {
                     moves.push(this.getMove(dR, dC));
                     if (this.isEnemy(this.getPiece(dR, dC))) {
-                         break;
+                        break;
                     }
                 } else break;
             }
@@ -222,14 +220,24 @@ class Piece {
         return moves;
     }
 
-    name() { return null; }
-    color() { return this.mycolor; }
-    legalMoves() { return null };
+    name() {
+        return null;
+    }
+
+    color() {
+        return this.mycolor;
+    }
+
+    legalMoves() {
+        return null
+    };
 }
 
 class Pawn extends Piece {
 
-    name() { return "pawn"; }
+    name() {
+        return "pawn";
+    }
 
     legalMoves() {
         let moves = [];
@@ -253,7 +261,9 @@ class Pawn extends Piece {
 }
 
 class Knight extends Piece {
-    name() { return "knight"; }
+    name() {
+        return "knight";
+    }
 
     legalMoves() {
         let moves = [];
@@ -279,8 +289,9 @@ class Knight extends Piece {
 }
 
 class Bishop extends Piece {
-    name() { return "bishop"; }
-
+    name() {
+        return "bishop";
+    }
 
 
     legalMoves() {
@@ -290,7 +301,9 @@ class Bishop extends Piece {
 }
 
 class Rook extends Piece {
-    name() { return "rook"; }
+    name() {
+        return "rook";
+    }
 
     legalMoves() {
         const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
@@ -299,24 +312,28 @@ class Rook extends Piece {
 }
 
 class Queen extends Piece {
-    name() { return "queen"; }
+    name() {
+        return "queen";
+    }
 
     legalMoves() {
         const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1],
-                        [1, 1], [1, -1], [-1, 1], [-1, -1]
-                        ];
+            [1, 1], [1, -1], [-1, 1], [-1, -1]
+        ];
         return this.getStraightMoves(dirs);
     }
 }
 
 class King extends Piece {
-    name() { return "king"; }
+    name() {
+        return "king";
+    }
 
     legalMoves() {
         let moves = [];
         const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1],
-                        [1, 1], [1, -1], [-1, 1], [-1, -1]
-                        ];
+            [1, 1], [1, -1], [-1, 1], [-1, -1]
+        ];
         for (let dir of dirs) {
             if (this.isValidSquare(dir[0], dir[1])) {
                 moves.push(this.getMove(dir[0], dir[1]));
@@ -342,7 +359,7 @@ class Position {
     }
 
     equals(r, c) {
-        return this.row == r && this.col == c;
+        return this.row === r && this.col === c;
     }
 }
 
@@ -362,6 +379,6 @@ class Move {
 
     isCheck(color) {
         let piece = this.board[this.position.row][this.position.col]
-        return piece instanceof King && piece.color() == color;
+        return piece instanceof King && piece.color() === color;
     }
 }
