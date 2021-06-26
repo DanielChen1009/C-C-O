@@ -98,24 +98,21 @@ class Game {
         this.legalMoves = null;
 
         // Set white pieces.
-        this.board[7][0] = new Rook(WHITE, 7, 0, this.board);
-        this.board[7][1] = new Knight(WHITE, 7, 1, this.board);
-        this.board[7][2] = new Bishop(WHITE, 7, 2, this.board);
-        this.board[7][3] = new Queen(WHITE, 7, 3, this.board);
-        this.board[7][4] = new King(WHITE, 7, 4, this.board);
-        this.board[7][5] = new Bishop(WHITE, 7, 5, this.board);
-        this.board[7][6] = new Knight(WHITE, 7, 6, this.board);
-        this.board[7][7] = new Rook(WHITE, 7, 7, this.board);
+        this.renderSide(WHITE, 7);
 
         // Set black pieces.
-        this.board[0][0] = new Rook(BLACK, 0, 0, this.board);
-        this.board[0][1] = new Knight(BLACK, 0, 1, this.board);
-        this.board[0][2] = new Bishop(BLACK, 0, 2, this.board);
-        this.board[0][3] = new Queen(BLACK, 0, 3, this.board);
-        this.board[0][4] = new King(BLACK, 0, 4, this.board);
-        this.board[0][5] = new Bishop(BLACK, 0, 5, this.board);
-        this.board[0][6] = new Knight(BLACK, 0, 6, this.board);
-        this.board[0][7] = new Rook(BLACK, 0, 7, this.board);
+        this.renderSide(BLACK, 0);
+    }
+
+    renderSide(color, pos) {
+        this.board[pos][0] = new Rook(color, pos, 0, this.board);
+        this.board[pos][1] = new Knight(color, pos, 1, this.board);
+        this.board[pos][2] = new Bishop(color, pos, 2, this.board);
+        this.board[pos][3] = new Queen(color, pos, 3, this.board);
+        this.board[pos][4] = new King(color, pos, 4, this.board);
+        this.board[pos][5] = new Bishop(color, pos, 5, this.board);
+        this.board[pos][6] = new Knight(color, pos, 6, this.board);
+        this.board[pos][7] = new Rook(color, pos, 7, this.board);
     }
 
     handleInput(r, c) {
@@ -143,7 +140,6 @@ class Game {
             let piece = this.board[r][c];
             if (piece.color() !== this.turn) return;
             this.selected = piece;
-
 
             this.legalMoves = this.selected ?
                 this.selected.legalMoves() : null;
@@ -247,6 +243,7 @@ class Pawn extends Piece {
             let piece = this.getPiece(-delta * this.color(), 0);
             if (this.isValidSquare(-delta * this.color(), 0) && !this.isEnemy(piece))
                 moves.push(this.getMove(-delta * this.color(), 0));
+            else break;
         }
 
         deltas = [1, -1];
