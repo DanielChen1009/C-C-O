@@ -26,10 +26,6 @@ class Session {
 
         this.game.handleInput(r, c);
         this.render();
-
-        this.game.checkForCheck();
-
-        console.log(this.game.isChecked);
     }
 
     render() {
@@ -51,12 +47,9 @@ class Session {
             square.addClass("select");
         }
         if (this.game.legalMoves) {
-            console.log(this.game.legalMoves);
-
-
             let moves = this.game.legalMoves;
             for (let move of moves) {
-                let position = move.position;
+                let position = move.toPos;
                 let validSquare = $("#" + position.toID());
                 validSquare.addClass("select");
             }
@@ -116,27 +109,33 @@ class Game {
     }
 
     handleInput(r, c) {
+        // This case is where legal moves are already highlighted on the board.
         if (this.legalMoves) {
+            // This case is where the piece actually will move.
             for (let move of this.legalMoves) {
-                if (move.position.equals(r, c)) {
+                if (move.toPos.equals(r, c)) {
                     if (!this.selected.moved) this.selected.moved = true;
                     move.apply();
+                    this.isChecked = false;
                     this.legalMoves = null;
                     this.selected = null;
-                    this.turn = this.turn === WHITE ? BLACK : WHITE;
+                    this.turn = this.opposite(this.turn);
                     return;
                 }
             }
+            // This is when the user clicked on nothing.
             if (!this.board[r][c]) {
                 this.legalMoves = null;
                 this.selected = null;
             } else {
+                // This is when the user clicked on something other than the current selected piece.
                 let piece = this.board[r][c];
                 if (piece.color() !== this.turn) return;
                 this.selected = this.board[r][c];
                 this.legalMoves = this.selected.legalMoves();
             }
         } else {
+            // This is where no legal moves are highlighted on the board yet.
             let piece = this.board[r][c];
             if (piece.color() !== this.turn) return;
             this.selected = piece;
@@ -144,26 +143,43 @@ class Game {
             this.legalMoves = this.selected ?
                 this.selected.legalMoves() : null;
         }
-
+        // This trims away the legal moves that causes the own king to be in check.
+        if (this.legalMoves) {
+            for (let i = this.legalMoves.length - 1; i >= 0; i--) {
+                let move = this.legalMoves[i];
+                move.apply();
+                if (this.checkForCheck(this.turn)) {
+                    this.legalMoves.splice(i, 1);
+                }
+                move.undo();
+            }
+        }
+        // This sets whether the opponent is in check.
+        this.isChecked = this.checkForCheck(this.opposite(this.turn));
     }
 
-    checkForCheck() {
-        let oppColor = this.turn === WHITE ? BLACK : WHITE;
+    opposite(color) {
+        return color === WHITE ? BLACK : WHITE;
+    }
+
+    *pieces(color) {
         for (let i = 0; i < 8; ++i) {
             for (let j = 0; j < 8; ++j) {
                 let piece = this.board[i][j];
-                if (piece && piece.color() === oppColor) {
-                    let moves = piece.legalMoves();
-                    for (let move of moves) {
-                        if (move.isCheck(this.turn)) {
-                            this.isChecked = true;
-                            return;
-                        }
-                    }
-                }
+                if (piece && piece.color() === color) yield piece;
             }
         }
-        this.isChecked = false;
+    }
+
+    // Checks whether the given color's king is in check.
+    checkForCheck(color) {
+        for (let piece of this.pieces(this.opposite(color))) {
+            let moves = piece.legalMoves();
+            for (let move of moves) {
+                if (move.capturesKing()) return true;
+            }
+        }
+        return false;
     }
 }
 
@@ -362,20 +378,29 @@ class Position {
 
 class Move {
     constructor(pos, piece) {
-        this.position = pos;
+        this.toPos = pos;
         this.piece = piece;
-        this.captures = [];
-        this.board = this.piece.pieceBoard
+        this.fromPos = this.piece.position;
+        this.capturedPieces = null;
+        this.board = this.piece.pieceBoard;
     }
 
     apply() {
+        this.capturedPieces = [this.board[this.toPos.row][this.toPos.col]];
         this.board[this.piece.position.row][this.piece.position.col] = null;
-        this.board[this.position.row][this.position.col] = this.piece;
-        this.piece.position = this.position;
+        this.board[this.toPos.row][this.toPos.col] = this.piece;
+        this.fromPos = new Position(this.piece.position.row, this.piece.position.col);
+        this.piece.position = this.toPos;
     }
 
-    isCheck(color) {
-        let piece = this.board[this.position.row][this.position.col]
-        return piece instanceof King && piece.color() === color;
+    undo() {
+        this.board[this.toPos.row][this.toPos.col] = this.capturedPieces[0];
+        this.piece.position = this.fromPos;
+        this.board[this.piece.position.row][this.piece.position.col] = this.piece;
+    }
+
+    capturesKing() {
+        let piece = this.board[this.toPos.row][this.toPos.col]
+        return piece instanceof King && piece.color() !== this.piece.color();
     }
 }
