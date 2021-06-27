@@ -36,6 +36,7 @@ class Session {
                 let square = $("#" + squareID);
                 square.removeClass();
                 square.addClass("square");
+                if ((i + j) % 2 !== 0) square.addClass("dark");
                 if (!piece) continue;
                 square.addClass("piece");
                 square.addClass(piece.name() + (piece.color() === WHITE ? "white" : "black"));
