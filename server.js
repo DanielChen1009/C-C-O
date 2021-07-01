@@ -2,25 +2,62 @@ const express = require('express');
 const socketio = require('socket.io');
 
 const app = express();
-app.use(express.static('public'));
+app.use(express.static("public"));
 
 const PORT = process.env.PORT || 3000;
-const server = app.listen(PORT, () => { console.log("Listening on port 3000!"); });
+const server = app.listen(PORT, () => {
+    console.log("Listening on port 3000!");
+});
 const io = socketio(server);
 
 let game;
 
-io.on('connection', (socket) => {
+let players = new Map();
+
+function rooms(socket) {
+    if (!socket) return io.sockets.adapter.rooms;
+    return Array.from(socket.rooms).filter(r => r !== socket.id)[0];
+}
+
+io.on("connection", (socket) => {
     if (!game) game = new Game();
-    socket.emit('state', game.data());
-    socket.on('input', (input) => {
+    socket.emit("state", game.data());
+    socket.on("input", (input) => {
         game.handleInput(input.row, input.col);
-        io.sockets.emit('state', game.data());
+        io.sockets.emit("state", game.data());
+    });
+    socket.on("new match", (input) => {
+        players[socket.id] = new Player(socket, input.playername);
+        let r = socket.rooms;
+        if (r.has(input.matchName) ||
+            !r.has(input.matchName) && r.size === 2) {
+            socket.emit('error', 'Already joined ' + rooms(socket));
+            return;
+        }
+        socket.join(input.matchName);
+        console.log(rooms());
+        console.log(rooms(socket));
+    });
+
+    socket.on("get matches", () => {
+        let result = [];
+        for (let [key, value] of io.sockets.adapter.rooms) {
+            if (value.has(key)) continue;
+            result.push(key);
+        }
+        socket.emit("matches", result);
     });
 });
 
 const WHITE = 1;
 const BLACK = -1;
+
+class Player {
+    constructor(socket, name) {
+        this.socket = socket;
+        this.name = name;
+    }
+}
 
 class Game {
     constructor() {
@@ -124,7 +161,7 @@ class Game {
         return color === WHITE ? BLACK : WHITE;
     }
 
-    *pieces(color) {
+    * pieces(color) {
         for (let i = 0; i < 8; ++i) {
             for (let j = 0; j < 8; ++j) {
                 let piece = this.board[i][j];

@@ -2,7 +2,6 @@ $(document).ready(init);
 
 let session;
 const WHITE = 1;
-const BLACK = -1;
 
 function init() {
     session = new Session("content");
@@ -13,10 +12,43 @@ class Session {
     constructor(contentId) {
         this.container = $("#" + contentId);
         this.socket = io();
-        this.socket.on('state', (state) => {
+        this.socket.on("state", (state) => {
             console.log(state);
             this.render(state);
         });
+        this.socket.on("error", (msg) => {
+           alert(msg);
+        });
+        this.socket.on("matches", (matches) => this.renderMatchList(matches));
+
+        this.socket.emit("get matches");
+
+        this.initLobby();
+    }
+
+    renderMatchList(matches) {
+        let table = $("#matchlist");
+        table.empty();
+        table.append("<tr><td>Matches</td></tr>")
+        for (let match of matches) {
+            let row = $("<tr>");
+            let cell = $("<td>");
+            cell.append(match);
+            row.append(cell);
+            table.append(row);
+        }
+    }
+
+    initLobby() {
+        let createButton = $("#create");
+        createButton.on("click", () => this.createMatch());
+    }
+
+    createMatch() {
+        let playerName = $("#playername").val();
+        let matchName = $("#matchname").val();
+        this.socket.emit("new match", {playerName: playerName, matchName: matchName});
+        this.socket.emit("get matches");
     }
 
     start() {
@@ -74,7 +106,7 @@ class Session {
                 button.addClass("square");
                 button.attr("type", "button");
                 button.attr("id", i * 8 + j);
-                button.click(() => session.handleClick(i * 8 + j));
+                button.on("click", () => session.handleClick(i * 8 + j));
                 cell.append(button);
                 row.append(cell);
             }
