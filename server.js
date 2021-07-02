@@ -6,17 +6,28 @@ app.use(express.static("public"));
 
 const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, () => {
-    console.log("Listening on port 3000!");
+    console.log("Listening on port " + PORT + "!");
 });
 const io = socketio(server);
 
-let game;
-
+// SocketID -> Player
 let players = new Map();
+
+// Match Name -> Match
+let matches = new Map();
+let game;
 
 function rooms(socket) {
     if (!socket) return io.sockets.adapter.rooms;
     return Array.from(socket.rooms).filter(r => r !== socket.id)[0];
+}
+function emitMatches() {
+    let result = [];
+    for (let [key, value] of io.sockets.adapter.rooms) {
+        if (value.has(key)) continue;
+        result.push(key);
+    }
+    io.sockets.emit("matches", result);
 }
 
 io.on("connection", (socket) => {
@@ -27,7 +38,8 @@ io.on("connection", (socket) => {
         io.sockets.emit("state", game.data());
     });
     socket.on("new match", (input) => {
-        players[socket.id] = new Player(socket, input.playername);
+        console.log("Creating new match for player " + input.playerName + ": " + input.matchName);
+        players[socket.id] = new Player(socket, input.playerName);
         let r = socket.rooms;
         if (r.has(input.matchName) ||
             !r.has(input.matchName) && r.size === 2) {
@@ -35,17 +47,32 @@ io.on("connection", (socket) => {
             return;
         }
         socket.join(input.matchName);
-        console.log(rooms());
-        console.log(rooms(socket));
+        matches[input.matchName] = new Match();
+        emitMatches();
     });
 
-    socket.on("get matches", () => {
-        let result = [];
-        for (let [key, value] of io.sockets.adapter.rooms) {
-            if (value.has(key)) continue;
-            result.push(key);
+    socket.on("get matches", () => emitMatches());
+
+    socket.on("disconnecting", () => {
+        console.log("Disconnecting " + socket.id);
+        if (!players[socket.id]) return;
+        console.log("Found player to disconnect: " + players[socket.id].name);
+        for (let room of socket.rooms) {
+            if (matches[room]) {
+                console.log("Deleted match: " + room);
+                matches.delete(room);
+            }
         }
-        socket.emit("matches", result);
+        players.delete(socket.id);
+    });
+
+    socket.on("disconnect", () => {
+        emitMatches();
+    });
+
+    socket.on("join room", (match) => {
+        if (!matches.has(match))
+            socket.emit("error", "Match does not exist.");
     });
 });
 
@@ -56,6 +83,12 @@ class Player {
     constructor(socket, name) {
         this.socket = socket;
         this.name = name;
+    }
+}
+
+class Match {
+    constructor() {
+        this.game = new Game();
     }
 }
 

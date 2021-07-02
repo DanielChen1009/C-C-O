@@ -20,9 +20,7 @@ class Session {
            alert(msg);
         });
         this.socket.on("matches", (matches) => this.renderMatchList(matches));
-
         this.socket.emit("get matches");
-
         this.initLobby();
     }
 
@@ -32,11 +30,21 @@ class Session {
         table.append("<tr><td>Matches</td></tr>")
         for (let match of matches) {
             let row = $("<tr>");
-            let cell = $("<td>");
-            cell.append(match);
-            row.append(cell);
+            let cell1 = $("<td>");
+            let cell2 = $("<td>");
+            let joinButton = $("<button>");
+            joinButton.html("Join");
+            joinButton.on("click", () => joinRoom(match));
+            cell1.append(match);
+            cell2.append(joinButton);
+            row.append(cell1);
+            row.append(cell2)
             table.append(row);
         }
+    }
+
+    joinRoom(match) {
+        this.socket.emit("join room", match);
     }
 
     initLobby() {
@@ -48,7 +56,6 @@ class Session {
         let playerName = $("#playername").val();
         let matchName = $("#matchname").val();
         this.socket.emit("new match", {playerName: playerName, matchName: matchName});
-        this.socket.emit("get matches");
     }
 
     start() {
