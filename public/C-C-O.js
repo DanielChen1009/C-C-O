@@ -12,6 +12,9 @@ class Session {
     constructor(contentId) {
         this.container = $("#" + contentId);
         this.socket = io();
+        this.socket.on("exit match", () => {
+            this.sessionMatchName = null;
+        });
         this.socket.on("state", (state) => {
             console.log(state);
             this.render(state);
@@ -21,6 +24,7 @@ class Session {
         });
         this.socket.on("matches", (matches) => this.renderMatchList(matches));
         this.socket.emit("get matches");
+        this.sessionMatchName= null;
         this.initLobby();
     }
 
@@ -28,14 +32,14 @@ class Session {
         let table = $("#matchlist");
         table.empty();
         table.append("<tr><td>Matches</td></tr>")
-        for (let match of matches) {
+        for (let matchName of matches) {
             let row = $("<tr>");
             let cell1 = $("<td>");
             let cell2 = $("<td>");
             let joinButton = $("<button>");
             joinButton.html("Join");
-            joinButton.on("click", () => joinRoom(match));
-            cell1.append(match);
+            joinButton.on("click", () => this.joinRoom(matchName));
+            cell1.append(matchName);
             cell2.append(joinButton);
             row.append(cell1);
             row.append(cell2)
@@ -43,8 +47,8 @@ class Session {
         }
     }
 
-    joinRoom(match) {
-        this.socket.emit("join room", match);
+    joinRoom(matchName) {
+        this.socket.emit("join room", matchName);
     }
 
     initLobby() {
@@ -56,6 +60,7 @@ class Session {
         let playerName = $("#playername").val();
         let matchName = $("#matchname").val();
         this.socket.emit("new match", {playerName: playerName, matchName: matchName});
+        this.sessionMatchName = matchName;
     }
 
     start() {
@@ -66,7 +71,7 @@ class Session {
         let r = Math.floor(id / 8);
         let c = id % 8;
 
-        this.socket.emit('input', {row: r, col: c});
+        this.socket.emit('input', {row: r, col: c, matchName: this.sessionMatchName});
     }
 
     toID(pos) {
@@ -74,6 +79,7 @@ class Session {
     }
 
     render(state) {
+        if (state.matchName) this.sessionMatchName = state.matchName;
         for (let i = 0; i < 8; i++) {
             for (let j = 0; j < 8; j++) {
                 let squareID = i * 8 + j;

@@ -24,7 +24,7 @@ function rooms(socket) {
 function emitMatches() {
     let result = [];
     for (let [key, value] of io.sockets.adapter.rooms) {
-        if (value.has(key)) continue;
+        if (value.has(key) || !matches[key]) continue;
         result.push(key);
     }
     io.sockets.emit("matches", result);
@@ -32,10 +32,24 @@ function emitMatches() {
 
 io.on("connection", (socket) => {
     if (!game) game = new Game();
+    players[socket.id] = new Player(socket, socket.id);
     socket.emit("state", game.data());
     socket.on("input", (input) => {
-        game.handleInput(input.row, input.col);
-        io.sockets.emit("state", game.data());
+        if (!input.matchName) {
+            socket.emit("error", "Create a match first!");
+        }
+        const match = matches[input.matchName]
+        if (!match) {
+            socket.emit("error", "Opponent disconnected");
+            socket.emit("exit match");
+            return;
+        }
+        if (!match.guest) {
+            socket.emit("error", "You need an opponent!");
+            return;
+        }
+        match.game.handleInput(input.row, input.col);
+        io.to(input.matchName).emit("state", match.data());
     });
     socket.on("new match", (input) => {
         console.log("Creating new match for player " + input.playerName + ": " + input.matchName);
@@ -47,7 +61,7 @@ io.on("connection", (socket) => {
             return;
         }
         socket.join(input.matchName);
-        matches[input.matchName] = new Match();
+        matches[input.matchName] = new Match(players[socket.id], input.matchName);
         emitMatches();
     });
 
@@ -60,19 +74,31 @@ io.on("connection", (socket) => {
         for (let room of socket.rooms) {
             if (matches[room]) {
                 console.log("Deleted match: " + room);
-                matches.delete(room);
+                delete matches[room];
             }
         }
-        players.delete(socket.id);
+        delete players[socket.id];
     });
 
     socket.on("disconnect", () => {
         emitMatches();
     });
 
-    socket.on("join room", (match) => {
-        if (!matches.has(match))
+    socket.on("join room", (matchName) => {
+        const player = players[socket.id];
+        const match = matches[matchName];
+        if (!match) {
             socket.emit("error", "Match does not exist.");
+            return;
+        }
+        if (match.host.name === player.name) {
+            socket.emit("error", "Cannot join own match");
+            return;
+        }
+        match.guest = player;
+        socket.join(matchName);
+        io.to(matchName).emit("state", match.data());
+
     });
 });
 
@@ -87,8 +113,17 @@ class Player {
 }
 
 class Match {
-    constructor() {
+    constructor(host, matchName) {
         this.game = new Game();
+        this.name = matchName;
+        this.host = host;
+        this.guest = null;
+    }
+
+    data() {
+        let gameData = this.game.data();
+        gameData.matchName = this.name;
+        return gameData;
     }
 }
 
