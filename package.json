@@ -18,7 +18,8 @@
   "homepage": "https://github.com/DanielChen1009/C-C-O#readme",
   "dependencies": {
     "express": "^4.17.1",
-    "socket.io": "^4.1.2"
+    "socket.io": "^4.1.2",
+    "unique-names-generator": "^4.5.0"
   },
   "engines": {
     "node": "16.4.0"

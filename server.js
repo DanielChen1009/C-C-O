@@ -1,6 +1,5 @@
 const express = require('express');
 const socketio = require('socket.io');
-const Game = require('./game.js');
 const Match = require('./match.js');
 const Player = require('./player.js');
 const app = express();
@@ -12,12 +11,21 @@ const server = app.listen(PORT, () => {
 });
 const io = socketio(server);
 
+const {uniqueNamesGenerator, NumberDictionary, adjectives, names} = require('unique-names-generator');
+
+const numberDictionary = NumberDictionary.generate({ min: 100, max: 999 });
+const playerName = uniqueNamesGenerator({
+    dictionaries: [adjectives, names, numberDictionary],
+    length: 3,
+    separator: '',
+    style: 'capital'
+});
+
 // SocketID -> Player
 let players = new Map();
 
 // Match Name -> Match
 let matches = new Map();
-let globalMatch;
 
 function rooms(socket) {
     if (!socket) return io.sockets.adapter.rooms;
@@ -33,13 +41,21 @@ function emitMatches() {
 }
 
 io.on("connection", (socket) => {
-    players[socket.id] = new Player(socket.id, new Match(socket.id, null));
+    const numberDictionary = NumberDictionary.generate({ min: 100, max: 999 });
+    const playerName = uniqueNamesGenerator({
+        dictionaries: [adjectives, names, numberDictionary],
+        length: 3,
+        separator: '',
+        style: 'capital'
+    });
+    players[socket.id] = new Player(playerName, new Match(socket.id, null));
     players[socket.id].personalMatch.guest = players[socket.id];
     socket.emit("state", players[socket.id].personalMatch.data());
     socket.on("input", (input) => {
         if (!input.matchName) {
             players[socket.id].personalMatch.game.handleInput(input.row, input.col);
             socket.emit("state", players[socket.id].personalMatch.data());
+            socket.emit("message", players[socket.id].name);
             return;
         }
         const match = matches[input.matchName]

@@ -1,7 +1,32 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
         <style>
+            .game {
+                padding-top: 30px;
+            }
+
+            .mytextarea {
+                resize: none;
+                height: 140px;
+                width: 100%;
+            }
+
+            .nameinput {
+                width: 100%;
+            }
+
+            .matchinput {
+                width: 80%;
+            }
+
+            .matchlist {
+                border: 1px solid black;
+                padding: 10px;
+
+            }
+
             .board {
                 width: 400px;
                 height: 400px;
@@ -95,19 +120,43 @@
         <script src="C-C-O.js" crossorigin="anonymous"></script>
     </head>
     <body>
-        <div id="content">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6 game">
+                    <div id="content">
 
-        </div>
-        <div id="creatematch">
-            <button id="create">
-                Create
-            </button>
-            <input type="text" id="playername" placeholder="Player Name" />
-            <input type="text" id="matchname" placeholder="Match Name" /><br /><br />
-        </div>
-        <div>
-            <table id="matchlist">
-            </table>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div id="creatematch">
+                        <h3>
+                            Input
+                        </h3>
+                        <input type="text" id="playername" class="nameinput" placeholder="Player Name" /> <br><br>
+                        <input type="text" id="matchname" class="matchinput" placeholder="Match Name" />
+                        <button id="create">
+                            Create
+                        </button> <br><br><br><br>
+                    </div>
+                    <div>
+                        <h5>
+                            Matches
+                        </h5>
+                    </div>
+                    <div class="matchlist">
+                        <table id="matchlist">
+                        </table>
+                    </div> <br><br>
+                    <div>
+                        <h5>
+                            Events
+                        </h5>
+                    </div>
+                    <div id="textarea">
+
+                    </div>
+                </div>
+            </div>
         </div>
     </body>
 </html>

@@ -20,7 +20,18 @@ class Session {
             this.render(state);
         });
         this.socket.on("error", (msg) => {
-           alert(msg);
+           let alerts = $("#alerts");
+           console.log("Error: " + msg);
+           let message = alerts.val() + "Error: " + msg + '\n';
+           alerts.scrollTop(alerts[0].scrollHeight);
+           alerts.val(message);
+        });
+        this.socket.on("message", (msg) => {
+            let alerts = $("#alerts");
+            console.log("Alert: " + msg);
+            let message = alerts.val() + "Alert: " + msg + '\n';
+            alerts.scrollTop(alerts[0].scrollHeight);
+            alerts.val(message);
         });
         this.socket.on("matches", (matches) => this.renderMatchList(matches));
         this.socket.emit("get matches");
@@ -31,18 +42,20 @@ class Session {
     renderMatchList(matches) {
         let table = $("#matchlist");
         table.empty();
-        table.append("<tr><td>Matches</td></tr>")
         for (let matchName of matches) {
             let row = $("<tr>");
             let cell1 = $("<td>");
             let cell2 = $("<td>");
+            let cell3 = $("<td>");
             let joinButton = $("<button>");
             joinButton.html("Join");
             joinButton.on("click", () => this.joinRoom(matchName));
             cell1.append(matchName);
-            cell2.append(joinButton);
+            cell2.append('&nbsp;&nbsp;&nbsp;');
+            cell3.append(joinButton);
             row.append(cell1);
             row.append(cell2)
+            row.append(cell3)
             table.append(row);
         }
     }
@@ -65,6 +78,7 @@ class Session {
 
     start() {
         this.buildBoard();
+        this.buildTextArea();
     }
 
     handleClick(id) {
@@ -106,6 +120,13 @@ class Session {
                 validSquare.addClass("select");
             }
         }
+    }
+
+    buildTextArea() {
+        let alerts = $("<textarea>");
+        alerts.attr("id", "alerts");
+        alerts.addClass("mytextarea");
+        $("#textarea").append(alerts);
     }
 
     buildBoard() {
