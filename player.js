@@ -1,5 +1,6 @@
 module.exports = class Player {
-    constructor(socket, name) {
+    constructor(name, match) {
         this.name = name;
+        this.personalMatch = match;
     }
 }

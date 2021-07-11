@@ -17,7 +17,7 @@ let players = new Map();
 
 // Match Name -> Match
 let matches = new Map();
-let game;
+let globalMatch;
 
 function rooms(socket) {
     if (!socket) return io.sockets.adapter.rooms;
@@ -33,18 +33,20 @@ function emitMatches() {
 }
 
 io.on("connection", (socket) => {
-    if (!game) game = new Game();
-    players[socket.id] = new Player(socket, socket.id);
-    socket.emit("state", game.data());
+    players[socket.id] = new Player(socket.id, new Match(socket.id, null));
+    players[socket.id].personalMatch.guest = players[socket.id];
+    socket.emit("state", players[socket.id].personalMatch.data());
     socket.on("input", (input) => {
         if (!input.matchName) {
-            socket.emit("error", "Create a match first!");
+            players[socket.id].personalMatch.game.handleInput(input.row, input.col);
+            socket.emit("state", players[socket.id].personalMatch.data());
             return;
         }
         const match = matches[input.matchName]
         if (!match) {
             socket.emit("error", "Opponent disconnected");
             socket.emit("exit match");
+            socket.emit("state", players[socket.id].personalMatch.data());
             return;
         }
         if (!match.guest) {
@@ -56,7 +58,7 @@ io.on("connection", (socket) => {
     });
     socket.on("new match", (input) => {
         console.log("Creating new match for player " + input.playerName + ": " + input.matchName);
-        players[socket.id] = new Player(socket, input.playerName);
+        players[socket.id] = new Player(input.playerName, players[socket.id].game);
         let r = socket.rooms;
         if (r.has(input.matchName) ||
             !r.has(input.matchName) && r.size === 2) {
