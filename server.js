@@ -31,6 +31,7 @@ function rooms(socket) {
     if (!socket) return io.sockets.adapter.rooms;
     return Array.from(socket.rooms).filter(r => r !== socket.id)[0];
 }
+
 function emitMatches() {
     let result = [];
     for (let [key, value] of io.sockets.adapter.rooms) {
@@ -40,22 +41,24 @@ function emitMatches() {
     io.sockets.emit("matches", result);
 }
 
-io.on("connection", (socket) => {
+function generateName() {
     const numberDictionary = NumberDictionary.generate({ min: 100, max: 999 });
-    const playerName = uniqueNamesGenerator({
+    return uniqueNamesGenerator({
         dictionaries: [adjectives, names, numberDictionary],
         length: 3,
         separator: '',
         style: 'capital'
     });
-    players[socket.id] = new Player(playerName, new Match(socket.id, null));
+}
+
+io.on("connection", (socket) => {
+    players[socket.id] = new Player(generateName(), new Match(socket.id, null));
     players[socket.id].personalMatch.guest = players[socket.id];
-    socket.emit("state", players[socket.id].personalMatch.data());
+
     socket.on("input", (input) => {
         if (!input.matchName) {
             players[socket.id].personalMatch.game.handleInput(input.row, input.col);
             socket.emit("state", players[socket.id].personalMatch.data());
-            socket.emit("message", players[socket.id].name);
             return;
         }
         const match = matches[input.matchName]
@@ -73,6 +76,9 @@ io.on("connection", (socket) => {
         io.to(input.matchName).emit("state", match.data());
     });
     socket.on("new match", (input) => {
+        if (!input.matchName) {
+            socket.emit('error', 'Must specify match name');
+        }
         console.log("Creating new match for player " + input.playerName + ": " + input.matchName);
         players[socket.id] = new Player(input.playerName, players[socket.id].game);
         let r = socket.rooms;
@@ -87,6 +93,12 @@ io.on("connection", (socket) => {
     });
 
     socket.on("get matches", () => emitMatches());
+    socket.on("get personal game state", () => {
+        socket.emit("state", players[socket.id].personalMatch.data());
+    });
+    socket.on("get player info", () => {
+        socket.emit("player info", players[socket.id].name);
+    });
 
     socket.on("disconnecting", () => {
         console.log("Disconnecting " + socket.id);

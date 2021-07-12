@@ -1,0 +1,87 @@
+
+.mytextarea {
+    resize: none;
+    height: 140px;
+    width: 100%;
+}
+
+.board {
+    width: 400px;
+    height: 400px;
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+
+.square {
+    display: block;
+    padding: 0;
+    outline: none;
+    background-color: rgb(239, 239, 239);
+    border-width: 1px;
+}
+
+.dark {
+    background-color: rgb(200, 200, 200);
+}
+
+.select {
+    background-color: rgb(144, 238, 144);
+}
+
+tr, td {
+    padding: 0;
+}
+
+.piece {
+    background-image: url("chesspieces.png");
+    background-repeat: no-repeat;
+    background-size: 300px 100px;
+}
+
+.kingwhite {
+    background-position: 0% 0%;
+}
+
+.kingblack {
+    background-position: 0% 100%;
+}
+
+.queenwhite {
+    background-position: 20% 0%;
+}
+
+.queenblack {
+    background-position: 20% 100%;
+}
+
+.bishopwhite {
+    background-position: 40% 0%;
+}
+
+.bishopblack {
+    background-position: 40% 100%;
+}
+
+.knightwhite {
+    background-position: 60% 0%;
+}
+
+.knightblack {
+    background-position: 60% 100%;
+}
+
+.rookwhite {
+    background-position: 80% 0%;
+}
+
+.rookblack {
+    background-position: 80% 100%;
+}
+
+.pawnwhite {
+    background-position: 100% 0%;
+}
+
+.pawnblack {
+    background-position: 100% 100%;
+}

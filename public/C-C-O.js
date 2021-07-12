@@ -1,72 +1,81 @@
-$(document).ready(init);
-
-let session;
 const WHITE = 1;
 
-function init() {
-    session = new Session("content");
-    session.start();
-}
-
 class Session {
-    constructor(contentId) {
-        this.container = $("#" + contentId);
+    constructor(config) {
+        this.config = config;
+        this.container = $("#" + this.config.containerId);
+        this.sessionMatchName = null;
+        $("#creatematch").on("click", "#createbutton", () => this.createMatch());
+
         this.socket = io();
         this.socket.on("exit match", () => {
+            this.showEvent("Exited match " + this.sessionMatchName, "Info");
             this.sessionMatchName = null;
         });
         this.socket.on("state", (state) => {
-            console.log(state);
             this.render(state);
         });
         this.socket.on("error", (msg) => {
-           let alerts = $("#alerts");
-           console.log("Error: " + msg);
-           let message = alerts.val() + "Error: " + msg + '\n';
-           alerts.scrollTop(alerts[0].scrollHeight);
-           alerts.val(message);
+            this.showEvent(msg, "Error");
         });
         this.socket.on("message", (msg) => {
-            let alerts = $("#alerts");
-            console.log("Alert: " + msg);
-            let message = alerts.val() + "Alert: " + msg + '\n';
-            alerts.scrollTop(alerts[0].scrollHeight);
-            alerts.val(message);
+            this.showEvent(msg, "Info");
+        });
+        this.socket.on("player info", (name) => {
+            $("#playername").val(name);
+            this.showEvent("Received name " + name, "Info");
         });
         this.socket.on("matches", (matches) => this.renderMatchList(matches));
         this.socket.emit("get matches");
-        this.sessionMatchName= null;
-        this.initLobby();
+        this.socket.emit("get personal game state");
+        this.socket.emit("get player info");
+        this.buildBoard();
+    }
+
+    // Shows one entry in the event log.
+    showEvent(msg, prefix) {
+        let eventLog = $("#event-log");
+        let message = eventLog.val() + prefix + ": " + msg + '\n';
+        eventLog.scrollTop(eventLog[0].scrollHeight);
+        eventLog.val(message);
     }
 
     renderMatchList(matches) {
         let table = $("#matchlist");
         table.empty();
+
+        let tableHead = $("<thead>");
+        let row = $("<tr>")
+            .append($("<th>").text("Match Name"))
+            .append($("<th>").text("Join"));
+        tableHead.append(row);
+        table.append(tableHead);
+
+        let tableBody = $("<tbody>");
+        if (matches.length === 0) {
+            let row = $("<tr>").append($("<td>").text("No matches available :(").attr("colspan", 2));
+            tableBody.append(row);
+        }
         for (let matchName of matches) {
             let row = $("<tr>");
             let cell1 = $("<td>");
-            let cell2 = $("<td>");
             let cell3 = $("<td>");
             let joinButton = $("<button>");
             joinButton.html("Join");
+            joinButton.addClass("btn");
+            joinButton.addClass("btn-primary");
             joinButton.on("click", () => this.joinRoom(matchName));
             cell1.append(matchName);
-            cell2.append('&nbsp;&nbsp;&nbsp;');
             cell3.append(joinButton);
             row.append(cell1);
-            row.append(cell2)
             row.append(cell3)
-            table.append(row);
+            tableBody.append(row);
         }
+        table.append(tableBody);
     }
 
     joinRoom(matchName) {
         this.socket.emit("join room", matchName);
-    }
-
-    initLobby() {
-        let createButton = $("#create");
-        createButton.on("click", () => this.createMatch());
     }
 
     createMatch() {
@@ -74,11 +83,6 @@ class Session {
         let matchName = $("#matchname").val();
         this.socket.emit("new match", {playerName: playerName, matchName: matchName});
         this.sessionMatchName = matchName;
-    }
-
-    start() {
-        this.buildBoard();
-        this.buildTextArea();
     }
 
     handleClick(id) {
@@ -101,10 +105,15 @@ class Session {
                 let square = $("#" + squareID);
                 square.removeClass();
                 square.addClass("square");
+                square.width(this.config.boardSize / 8);
+                square.height(this.config.boardSize / 8);
                 if ((i + j) % 2 !== 0) square.addClass("dark");
                 if (!piece) continue;
                 square.addClass("piece");
                 square.addClass(piece.name + (piece.color === WHITE ? "white" : "black"));
+                // Scale the sprite sheet according to our board size.
+                square.css("background-size", (this.config.boardSize * 0.75) + "px " + 
+                                              (this.config.boardSize * 0.25) + "px");
             }
         }
         if (state.selected) {
@@ -122,16 +131,11 @@ class Session {
         }
     }
 
-    buildTextArea() {
-        let alerts = $("<textarea>");
-        alerts.attr("id", "alerts");
-        alerts.addClass("mytextarea");
-        $("#textarea").append(alerts);
-    }
-
     buildBoard() {
         let content = $("<table>");
         content.addClass("board");
+        content.width(this.config.boardSize);
+        content.height(this.config.boardSize);
         for (let i = 0; i < 8; i++) {
             let row = $("<tr>");
             for (let j = 0; j < 8; j++) {
