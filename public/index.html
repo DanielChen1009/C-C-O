@@ -2,7 +2,14 @@
 <html>
     <head>
         <!-- Third party libs -->
-        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+        <link rel="stylesheet"
+              href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" 
+              integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu"
+              crossorigin="anonymous">
+        <link rel="stylesheet"
+              href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap-theme.min.css"
+              integrity="sha384-6pzBo3FDv/PJ8r2KRkGHifhEocL+1X2rVCTTkUfGk7/0pbek5mMa1upzvWbrUbOZ"
+              crossorigin="anonymous">
         <script src="https://cdn.socket.io/3.1.3/socket.io.min.js"
                 integrity="sha384-cPwlPLvBTa3sKAgddT6krw0cJat7egBga3DJepJyrLl4Q9/5WLra3rrnMcyTyOnh"
                 crossorigin="anonymous"></script>
@@ -28,61 +35,66 @@
         </script>
     </head>
     <body>
-        <div class="jumbotron">
-            <div class="container">
-                <div class="row">
-                    <div class="col-md-7">
-                        <div class="panel panel-default pull-right">
-                            <div class="panel-heading">C-C-O Board</div>
-                            <div id="content" class="panel-body">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="panel panel-default pull-right">
+                        <div class="panel-heading">C-C-O Board</div>
+                        <div id="content" class="panel-body">
 
-                            </div>
                         </div>
                     </div>
-                    <div class="col-md-5">
-                        <div class="panel panel-primary pull-left">
-                            <div class="panel-heading">C-C-O Lobby</div>
-                            <div class="panel-body">
-                                <div class="panel panel-info">
-                                    <div class="panel-heading">Player Name</div>
-                                    <div id="playerinfo" class="panel-body">
-                                        <div class="input-group">
-                                            <input type="text" id="playername" class="form-control" placeholder="Your Name" />
-                                            <span class="input-group-btn">
-                                                <button class="btn btn-default" id="create">
-                                                    <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>&nbsp;Update
-                                                </button>
-                                            </span>
-                                        </div>
-                                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="panel panel-primary pull-left">
+                        <div class="panel-heading">C-C-O Lobby</div>
+                        <div class="panel-body">
+                            <div class="panel panel-info">
+                                <div class="panel-heading">
+                                    Player Info
                                 </div>
-                                <div class="panel panel-info">
-                                    <div class="panel-heading">Available Matches</div>
-                                    <table id="matchlist" class="table"></table>
-                                    <div class="panel-footer">
-                                        <div id="creatematch" class="input-group">
-                                            <input type="text" id="matchname" class="form-control" placeholder="New Match Name" />
-                                            <span class="input-group-btn">
-                                                <button class="btn btn-default" id="createbutton">
-                                                    <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>&nbsp;Create Match
-                                                </button>
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="panel panel-info">
-                                    <div class="panel-heading">Events</div>
-                                    <div class="panel-body">
-                                        <div id="event-log-container">
-                                            <textarea id="event-log" class="form-control" disabled></textarea>
-                                        </div>
+                                <div id="playerinfo" class="panel-body">
+                                    <div class="input-group">
+                                        <div class="input-group-addon">Your name</div>
+                                        <input type="text" id="playername" class="form-control" placeholder="Your Name" />
+                                        <span class="input-group-btn">
+                                            <button class="btn btn-default" id="create">
+                                                <span class="glyphicon glyphicon-pencil" aria-hidden="true"></span>&nbsp;Update
+                                            </button>
+                                        </span>
                                     </div>
                                 </div>
                             </div>
+                            <div class="panel panel-info">
+                                <div class="panel-heading">
+                                    Available Matches
+                                </div>
+                                <table id="matchlist" class="table table-striped table-bordered table-hover"></table>
+                                <div class="panel-footer">
+                                    <div id="creatematch" class="input-group">
+                                        <input type="text" id="matchname" class="form-control" placeholder="New Match Name" />
+                                        <span class="input-group-btn">
+                                            <button class="btn btn-default" id="createbutton">
+                                                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>&nbsp;Create Match
+                                            </button>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="panel panel-info">
+                                <div class="panel-heading">
+                                    Events
+                                </div>
+                                <div class="panel-body">
+                                    <div id="event-log-container">
+                                        <textarea id="event-log" class="form-control" rows=20 readonly></textarea>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div><!--End row-->
-            </div><!--End container-->
-        </div><!--End jumbotron-->
+                </div>
+            </div><!--End row-->
+        </div><!--End container-->
     </body>
 </html>

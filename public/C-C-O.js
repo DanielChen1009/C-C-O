@@ -47,35 +47,41 @@ class Session {
         let tableHead = $("<thead>");
         let row = $("<tr>")
             .append($("<th>").text("Match Name"))
+            .append($("<th>").text("Match Host"))
             .append($("<th>").text("Join"));
         tableHead.append(row);
         table.append(tableHead);
 
         let tableBody = $("<tbody>");
         if (matches.length === 0) {
-            let row = $("<tr>").append($("<td>").text("No matches available :(").attr("colspan", 2));
+            let row = $("<tr>").append($("<td>").append($("p"))
+                .text("No matches available. Create one!").attr("colspan", 3)
+                .addClass("text-info").addClass("text-center"));
             tableBody.append(row);
         }
-        for (let matchName of matches) {
+        for (let match of matches) {
             let row = $("<tr>");
             let cell1 = $("<td>");
+            let cell2 = $("<td>");
             let cell3 = $("<td>");
             let joinButton = $("<button>");
             joinButton.html("Join");
             joinButton.addClass("btn");
             joinButton.addClass("btn-primary");
-            joinButton.on("click", () => this.joinRoom(matchName));
-            cell1.append(matchName);
+            joinButton.on("click", () => this.joinMatch(match.name));
+            cell1.append($("<p>").addClass("text-info").addClass("text-center").text(match.name));
+            cell2.append($("<p>").addClass("text-info").addClass("text-center").text(match.host));
             cell3.append(joinButton);
             row.append(cell1);
+            row.append(cell2);
             row.append(cell3)
             tableBody.append(row);
         }
         table.append(tableBody);
     }
 
-    joinRoom(matchName) {
-        this.socket.emit("join room", matchName);
+    joinMatch(matchName) {
+        this.socket.emit("join match", matchName);
     }
 
     createMatch() {

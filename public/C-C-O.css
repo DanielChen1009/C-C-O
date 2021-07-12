@@ -1,8 +1,5 @@
-
-.mytextarea {
-    resize: none;
-    height: 140px;
-    width: 100%;
+#matchlist p {
+    margin-top: 5px;
 }
 
 .board {

@@ -36,7 +36,13 @@ function emitMatches() {
     let result = [];
     for (let [key, value] of io.sockets.adapter.rooms) {
         if (value.has(key) || !matches[key]) continue;
-        result.push(key);
+        const match = matches[key];
+        // Match has already started. Don't list it.
+        if (match.host && match.guest) continue;
+        result.push({
+            name: match.name,
+            host: match.host.name
+        });
     }
     io.sockets.emit("matches", result);
 }
@@ -117,19 +123,30 @@ io.on("connection", (socket) => {
         emitMatches();
     });
 
-    socket.on("join room", (matchName) => {
+    socket.on("join match", (matchName) => {
         const player = players[socket.id];
         const match = matches[matchName];
         if (!match) {
-            socket.emit("error", "Match does not exist.");
+            socket.emit("error", "Match " + matchName + " does not exist.");
+            emitMatches();
             return;
         }
         if (match.host.name === player.name) {
-            socket.emit("error", "Cannot join own match");
+            socket.emit("error", "Cannot join a match you hosted");
+            return;
+        }
+        if (match.guest && match.guest.name === player.name) {
+            socket.emit("error", "You already joined this match");
+            return;
+        }
+        if (match.guest && match.guest.name !== player.name) {
+            socket.emit("error", "This match has already started");
             return;
         }
         match.guest = player;
         socket.join(matchName);
         io.to(matchName).emit("state", match.data());
+        socket.emit("message", "Joined match " + match.name + " hosted by " + match.host.name);
+        emitMatches();
     });
 });
