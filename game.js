@@ -8,7 +8,7 @@ const Piece = require('./pieces/piece.js');
 
 const WHITE = 1;
 const BLACK = -1;
-const DEBUG = true;
+const DEBUG = false;
 
 module.exports = class Game {
     constructor() {
