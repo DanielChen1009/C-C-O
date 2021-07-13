@@ -6,4 +6,8 @@ module.exports = class Player {
         this.hostedMatch = null;
         this.joinedMatch = null;
     }
+
+    sendPersonalMatchState() {
+       this.socket.emit("match state", this.personalMatch.data());
+    }
 }

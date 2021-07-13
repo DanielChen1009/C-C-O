@@ -59,10 +59,13 @@ function generateName() {
 
 // All event handlers.
 io.on("connection", (socket) => {
-    const newPlayer = new Player(generateName(), socket, new Match(socket.id, null));
+    const playerName = generateName();
+    const newPlayer = new Player(playerName, socket, new Match(null, null));
+    newPlayer.personalMatch.host = newPlayer;
     players.set(socket.id, newPlayer);
     players.get(socket.id).personalMatch.guest = newPlayer;
     nameMap.set(newPlayer.name, newPlayer);
+    socket.emit("player info", newPlayer.name);
 
     socket.on("update name", (newName) => {
         if (nameMap.has(newName)) {
@@ -81,22 +84,22 @@ io.on("connection", (socket) => {
         const player = players.get(socket.id);
         if (!input.matchName) {
             player.personalMatch.game.handleInput(input.row, input.col);
-            socket.emit("state", player.personalMatch.data());
+            player.sendPersonalMatchState();
             return;
         }
         const match = matches.get(input.matchName)
         if (!match) {
-            socket.emit("error", "Opponent disconnected");
+            socket.emit("error", "Match does not exist. Opponent disconnected.");
             socket.emit("exit match");
-            socket.emit("state", player.personalMatch.data());
+            player.sendPersonalMatchState();
             return;
         }
         if (!match.guest) {
-            socket.emit("error", "You need an opponent!");
+            socket.emit("error", "You are hosting a match. Still waiting for an opponent!");
             return;
         }
         match.game.handleInput(input.row, input.col);
-        io.to(input.matchName).emit("state", match.data());
+        io.to(input.matchName).emit("match state", match.data());
     });
 
     socket.on("new match", (input) => {
@@ -114,7 +117,7 @@ io.on("connection", (socket) => {
             socket.emit('error', 'You are already in a match: ' + player.joinedMatch.name);
             return;
         }
-        if (matches[input.matchName]) {
+        if (matches.has(input.matchName)) {
             socket.emit('error', 'Match already exists: ' + input.matchName);
             return;
         }
@@ -128,21 +131,22 @@ io.on("connection", (socket) => {
 
     socket.on("get matches", () => emitMatches());
     socket.on("get personal game state", () => {
-        socket.emit("state", players.get(socket.id).personalMatch.data());
+        players.get(socket.id).sendPersonalMatchState();
     });
     socket.on("get player info", () => {
         socket.emit("player info", players.get(socket.id).name);
     });
 
     socket.on("disconnecting", () => {
-        console.log("Disconnecting " + socket.id);
         if (!players.get(socket.id)) return;
         const player = players.get(socket.id);
+        console.log("Disconnecting " + player.name);
         if (player.hostedMatch) {
             const guest = player.hostedMatch.guest;
             if (guest) {
                 guest.joinedMatch = null;
                 guest.socket.emit("host disconnected", player.name);
+                guest.sendPersonalMatchState();
             }
             matches.delete(player.hostedMatch.name);
             console.log("Deleted hosted match: " + player.hostedMatch.name);
@@ -151,6 +155,7 @@ io.on("connection", (socket) => {
             const host = player.joinedMatch.host;
             host.hostedMatch = null;
             host.socket.emit("guest disconnected", player.name);
+            host.sendPersonalMatchState();
             matches.delete(player.joinedMatch.name);
             console.log("Deleted joined match: " + player.joinedMatch.name);
         }
@@ -193,7 +198,7 @@ io.on("connection", (socket) => {
         match.guest = player;
         player.joinedMatch = match;
         socket.join(matchName);
-        io.to(matchName).emit("state", match.data());
+        io.to(matchName).emit("match state", match.data());
         socket.emit("message", "Joined match " + match.name + " hosted by " + match.host.name);
         match.host.socket.emit("guest joined", player.name);
         emitMatches();

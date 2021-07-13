@@ -3,21 +3,23 @@ const WHITE = 1;
 class Session {
     constructor(config) {
         this.config = config;
-        this.container = $("#" + this.config.containerId);
         this.sessionMatchName = null;
         this.playerName = null;
-        this.socket = io();
+        this.socket = io(this.config.backend);
 
+        // Set up all button events.
         $("#creatematch").on("click", "#createbutton", () => this.createMatch());
         $("#playerinfo").on("click", "#updatename", () => {
             this.socket.emit("update name", $("#playername").val());
         });
+
+        // Set up all socket.io event handlers.
         this.socket.on("exit match", () => {
             this.showEvent("Exited match " + this.sessionMatchName, "Info");
             this.sessionMatchName = null;
         });
-        this.socket.on("state", (state) => {
-            this.render(state);
+        this.socket.on("match state", (state) => {
+            this.renderMatchState(state);
         });
         this.socket.on("error", (msg) => {
             this.showEvent(msg, "Error");
@@ -28,7 +30,6 @@ class Session {
         this.socket.on("player info", (name) => {
             this.playerName = name;
             $("#playername").val(this.playerName);
-            this.showEvent("Received name " + this.playerName, "Info");
         });
         this.socket.on("guest joined", (name) => {
             this.showEvent("Guest " + name + " joined your match", "Info");
@@ -45,17 +46,28 @@ class Session {
         this.socket.emit("get matches");
         this.socket.emit("get personal game state");
         this.socket.emit("get player info");
+
+        // Create the DOM structure for the game board.
         this.buildBoard();
+
+        // Show a nice welcome message.
+        this.showEvent("Welcome to C-C-O! Play against yourself or create/join matches against others above.");
     }
 
     // Shows one entry in the event log.
     showEvent(msg, prefix) {
         let eventLog = $("#event-log");
-        let message = eventLog.val() + prefix + ": " + msg + '\n';
+        let message = eventLog.val() + (prefix ? (prefix + ": ") : "") + msg + '\n';
         eventLog.scrollTop(eventLog[0].scrollHeight);
         eventLog.val(message);
     }
 
+    // Shows a title string on the top of the board.
+    showBoardTitle(msg) {
+        $("#boardtitle").text(msg);
+    }
+
+    // Renders the match list in the lobby based on server-sent data.
     renderMatchList(matches) {
         let table = $("#matchlist");
         table.empty();
@@ -109,7 +121,6 @@ class Session {
         let playerName = $("#playername").val();
         let matchName = $("#matchname").val();
         this.socket.emit("new match", {playerName: playerName, matchName: matchName});
-        this.sessionMatchName = matchName;
     }
 
     handleClick(id) {
@@ -123,10 +134,16 @@ class Session {
         return pos.row * 8 + pos.col;
     }
 
-    render(state) {
+    renderMatchState(state) {
         if (state.matchName) this.sessionMatchName = state.matchName;
-        if (state.checkmate) this.showEvent("Checkmate!", "Game End")
-        if (state.stalemate) this.showEvent("Stalemate!", "Game End")
+        if (state.checkmate) this.showEvent("Checkmate!", "Game End");
+        if (state.stalemate) this.showEvent("Stalemate!", "Game End");
+
+        if (state.hostName === state.guestName) this.showBoardTitle("Play yourself here or join match");
+        else if (state.hostName === this.playerName && !state.guestName)
+            this.showBoardTitle("Waiting for opponent");
+        else this.showBoardTitle(state.hostName + " vs " + state.guestName);
+
         for (let i = 0; i < 8; i++) {
             for (let j = 0; j < 8; j++) {
                 let squareID = i * 8 + j;
@@ -180,6 +197,6 @@ class Session {
             content.append(row);
         }
 
-        this.container.append(content);
+        $("#" + this.config.boardContainerId).append(content);
     }
 }

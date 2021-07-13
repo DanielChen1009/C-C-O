@@ -22,16 +22,13 @@
         <script src="C-C-O.js" crossorigin="anonymous"></script>
 
         <script>
-            $(document).ready(init);
-
             let session;
-
-            function init() {
+            $(document).ready(() => {
                 session = new Session({
-                    containerId: "content",
+                    boardContainerId: "content",
                     boardSize: Math.min($(window).width(), $(window).height()) * 0.7
                 });
-            }
+            });
         </script>
     </head>
     <body>
@@ -39,7 +36,7 @@
             <div class="row">
                 <div class="col-md-6">
                     <div class="panel panel-default pull-right">
-                        <div class="panel-heading">C-C-O Board</div>
+                        <div class="panel-heading">C-C-O Board - <span id="boardtitle"></span></div>
                         <div id="content" class="panel-body">
 
                         </div>

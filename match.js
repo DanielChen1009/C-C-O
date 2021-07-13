@@ -11,6 +11,10 @@ module.exports = class Match {
     data() {
         let gameData = this.game.data();
         gameData.matchName = this.name;
+        gameData.hostName = this.host.name;
+        if (this.guest) {
+            gameData.guestName = this.guest.name;
+        }
         return gameData;
     }
 }
