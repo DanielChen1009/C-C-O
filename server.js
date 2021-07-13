@@ -19,6 +19,9 @@ let players = new Map();
 // Match Name -> Match
 let matches = new Map();
 
+// Player name -> Player.
+let nameMap = new Map();
+
 // Return all rooms the socket belongs to. If socket is not specified, return all rooms.
 function rooms(socket) {
     if (!socket) return io.sockets.adapter.rooms;
@@ -42,12 +45,16 @@ function emitMatches() {
 // Generate a random player name.
 function generateName() {
     const numberDictionary = NumberDictionary.generate({ min: 100, max: 999 });
-    return uniqueNamesGenerator({
-        dictionaries: [adjectives, names, numberDictionary],
-        length: 3,
-        separator: '',
-        style: 'capital'
-    });
+    let name = "";
+    do {
+        name = uniqueNamesGenerator({
+            dictionaries: [adjectives, names, numberDictionary],
+            length: 3,
+            separator: '',
+            style: 'capital'
+        });
+    } while (nameMap.has(name))
+    return name;
 }
 
 // All event handlers.
@@ -55,7 +62,20 @@ io.on("connection", (socket) => {
     const newPlayer = new Player(generateName(), socket, new Match(socket.id, null));
     players.set(socket.id, newPlayer);
     players.get(socket.id).personalMatch.guest = newPlayer;
+    nameMap.set(newPlayer.name, newPlayer);
 
+    socket.on("update name", (newName) => {
+        if (nameMap.has(newName)) {
+            socket.emit("error", newName + " is already taken.");
+            socket.emit("player info", players.get(socket.id).name);
+            return;
+        }
+        const player = players.get(socket.id);
+        nameMap.delete(player.name);
+        player.name = newName;
+        nameMap.set(player.name, player);
+        socket.emit("message", "Updated name to " + newName);
+    });
     socket.on("input", (input) => {
         const player = players.get(socket.id);
         if (!input.matchName) {
@@ -133,6 +153,7 @@ io.on("connection", (socket) => {
             matches.delete(player.joinedMatch.name);
             console.log("Deleted joined match: " + player.joinedMatch.name);
         }
+        nameMap.delete(player.name);
         players.delete(socket.id);
     });
 

@@ -6,9 +6,12 @@ class Session {
         this.container = $("#" + this.config.containerId);
         this.sessionMatchName = null;
         this.playerName = null;
-        $("#creatematch").on("click", "#createbutton", () => this.createMatch());
-
         this.socket = io();
+
+        $("#creatematch").on("click", "#createbutton", () => this.createMatch());
+        $("#playerinfo").on("click", "#updatename", () => {
+            this.socket.emit("update name", $("#playername").val());
+        });
         this.socket.on("exit match", () => {
             this.showEvent("Exited match " + this.sessionMatchName, "Info");
             this.sessionMatchName = null;
