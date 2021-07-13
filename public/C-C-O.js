@@ -125,6 +125,8 @@ class Session {
 
     render(state) {
         if (state.matchName) this.sessionMatchName = state.matchName;
+        if (state.checkmate) this.showEvent("Checkmate!", "Game End")
+        if (state.stalemate) this.showEvent("Stalemate!", "Game End")
         for (let i = 0; i < 8; i++) {
             for (let j = 0; j < 8; j++) {
                 let squareID = i * 8 + j;

@@ -4,33 +4,45 @@ const Bishop = require('./pieces/bishop.js');
 const Rook = require('./pieces/rook.js');
 const Queen = require('./pieces/queen.js');
 const King = require('./pieces/king.js');
+const Piece = require('./pieces/piece.js');
 
 const WHITE = 1;
 const BLACK = -1;
+const DEBUG = true;
+
 module.exports = class Game {
     constructor() {
         this.isChecked = false;
         this.turn = WHITE;
         this.selected = null;
         this.board = Array.from(Array(8), () => new Array(8));
-        for (let i = 0; i < 8; ++i) {
-            this.board[1][i] = new Pawn(BLACK, 1, i, this.board);
-            this.board[6][i] = new Pawn(WHITE, 6, i, this.board);
-        }
         this.legalMoves = null;
 
-        // Set white pieces.
-        this.renderSide(WHITE, 7);
+        if (DEBUG) {
+            this.board[0][0] = new King(BLACK, 0, 0, this.board);
+            this.board[3][4] = new Queen(WHITE, 3, 4, this.board);
+            this.board[5][5] = new King(WHITE, 5, 5, this.board);
+        } else {
+            // Set Pawns
+            for (let i = 0; i < 8; ++i) {
+                this.board[1][i] = new Pawn(BLACK, 1, i, this.board);
+                this.board[6][i] = new Pawn(WHITE, 6, i, this.board);
+            }
+            // Set white pieces.
+            this.renderSide(WHITE, 7);
 
-        // Set black pieces.
-        this.renderSide(BLACK, 0);
+            // Set black pieces.
+            this.renderSide(BLACK, 0);
+        }
     }
 
     data() {
         return {
             board: this.board.map(row => row.map(p => p ? p.data() : null)),
             selected: this.selected ? this.selected.data() : null,
-            legalMoves: this.legalMoves ? this.legalMoves.map(m => m.data()) : null
+            legalMoves: this.legalMoves ? this.legalMoves.map(m => m.data()) : null,
+            checkmate: this.hasNoMoves() && this.isChecked,
+            stalemate: this.hasNoMoves() && !this.isChecked,
         }
     }
 
@@ -45,21 +57,38 @@ module.exports = class Game {
         this.board[pos][7] = new Rook(color, pos, 7, this.board);
     }
 
+    movePiece(r, c) {
+        // This case is where the piece actually will move.
+        for (let move of this.legalMoves) {
+            if (move.toPos.equals(r, c)) {
+                if (!this.selected.moved) this.selected.moved = true;
+                move.apply();
+                this.isChecked = false;
+                this.legalMoves = null;
+                this.selected = null;
+                this.turn = this.opposite(this.turn);
+                this.isChecked = this.checkForCheck(this.turn);
+                break;
+            }
+        }
+    }
+
+    processLegalMoves() {
+        // This trims away the legal moves that causes the own king to be in check.
+        for (let i = this.legalMoves.length - 1; i >= 0; i--) {
+            let move = this.legalMoves[i];
+            move.apply();
+            if (this.checkForCheck(this.turn)) {
+                this.legalMoves.splice(i, 1);
+            }
+            move.undo();
+        }
+    }
+
     handleInput(r, c) {
         // This case is where legal moves are already highlighted on the board.
         if (this.legalMoves) {
-            // This case is where the piece actually will move.
-            for (let move of this.legalMoves) {
-                if (move.toPos.equals(r, c)) {
-                    if (!this.selected.moved) this.selected.moved = true;
-                    move.apply();
-                    this.isChecked = false;
-                    this.legalMoves = null;
-                    this.selected = null;
-                    this.turn = this.opposite(this.turn);
-                    return;
-                }
-            }
+            this.movePiece(r, c);
             // This is when the user clicked on nothing.
             if (!this.board[r][c]) {
                 this.legalMoves = null;
@@ -80,29 +109,31 @@ module.exports = class Game {
             this.legalMoves = this.selected ?
                 this.selected.legalMoves() : null;
         }
-        // This trims away the legal moves that causes the own king to be in check.
-        if (this.legalMoves) {
-            for (let i = this.legalMoves.length - 1; i >= 0; i--) {
-                let move = this.legalMoves[i];
-                move.apply();
-                if (this.checkForCheck(this.turn)) {
-                    this.legalMoves.splice(i, 1);
-                }
-                move.undo();
-            }
+
+        if(this.legalMoves) {
+            this.processLegalMoves();
         }
-        // This sets whether the opponent is in check.
-        this.isChecked = this.checkForCheck(this.opposite(this.turn));
     }
 
-    checkCheckmate() {
+    hasNoMoves() {
         for (let piece of this.pieces(this.turn)) {
-            piece.legalMoves = trimLegalMoves(piece.legalMoves);
+            let moves = this.trimMoves(piece);
+            if(moves.length !== 0) return false;
         }
+        return true;
     }
 
-    trimLegalMoves(legalMoves) {
-
+    trimMoves(piece) {
+        let moves = piece.legalMoves();
+        for (let i = moves.length - 1; i >= 0; i--) {
+            let move = moves[i];
+            move.apply();
+            if (this.checkForCheck(this.turn)) {
+                moves.splice(i, 1);
+            }
+            move.undo();
+        }
+        return moves;
     }
 
     opposite(color) {

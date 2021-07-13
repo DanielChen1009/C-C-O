@@ -75,6 +75,7 @@ io.on("connection", (socket) => {
         player.name = newName;
         nameMap.set(player.name, player);
         socket.emit("message", "Updated name to " + newName);
+        emitMatches();
     });
     socket.on("input", (input) => {
         const player = players.get(socket.id);
