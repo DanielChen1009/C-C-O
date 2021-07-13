@@ -5,6 +5,7 @@ class Session {
         this.config = config;
         this.container = $("#" + this.config.containerId);
         this.sessionMatchName = null;
+        this.playerName = null;
         $("#creatematch").on("click", "#createbutton", () => this.createMatch());
 
         this.socket = io();
@@ -22,8 +23,20 @@ class Session {
             this.showEvent(msg, "Info");
         });
         this.socket.on("player info", (name) => {
-            $("#playername").val(name);
-            this.showEvent("Received name " + name, "Info");
+            this.playerName = name;
+            $("#playername").val(this.playerName);
+            this.showEvent("Received name " + this.playerName, "Info");
+        });
+        this.socket.on("guest joined", (name) => {
+            this.showEvent("Guest " + name + " joined your match", "Info");
+        });
+        this.socket.on("host disconnected", (name) => {
+            this.showEvent("Host " + name + " disconnected from the match", "Info");
+            this.sessionMatchName = null;
+        });
+        this.socket.on("guest disconnected", (name) => {
+            this.showEvent("Guest " + name + " disconnected from the match", "Info");
+            this.sessionMatchName = null;
         });
         this.socket.on("matches", (matches) => this.renderMatchList(matches));
         this.socket.emit("get matches");
@@ -48,7 +61,7 @@ class Session {
         let row = $("<tr>")
             .append($("<th>").text("Match Name"))
             .append($("<th>").text("Match Host"))
-            .append($("<th>").text("Join"));
+            .append($("<th>").text("Action"));
         tableHead.append(row);
         table.append(tableHead);
 
@@ -65,16 +78,21 @@ class Session {
             let cell2 = $("<td>");
             let cell3 = $("<td>");
             let joinButton = $("<button>");
-            joinButton.html("Join");
-            joinButton.addClass("btn");
-            joinButton.addClass("btn-primary");
+            if (match.host === this.playerName) {
+                joinButton.html("Waiting");
+                joinButton.prop("disabled", true);
+            } else {
+                joinButton.html("Join");
+                if (this.sessionMatchName) {
+                    joinButton.prop("disabled", true);
+                }
+            }
+            joinButton.addClass("btn").addClass("btn-primary");
             joinButton.on("click", () => this.joinMatch(match.name));
             cell1.append($("<p>").addClass("text-info").addClass("text-center").text(match.name));
             cell2.append($("<p>").addClass("text-info").addClass("text-center").text(match.host));
             cell3.append(joinButton);
-            row.append(cell1);
-            row.append(cell2);
-            row.append(cell3)
+            row.append(cell1).append(cell2).append(cell3);
             tableBody.append(row);
         }
         table.append(tableBody);
