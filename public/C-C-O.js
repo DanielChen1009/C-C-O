@@ -1,5 +1,3 @@
-const WHITE = 1;
-
 class Session {
     constructor(config) {
         this.config = config;
@@ -134,6 +132,18 @@ class Session {
         return pos.row * 8 + pos.col;
     }
 
+    getPieceName(pieceCode) {
+        switch (parseInt(pieceCode)) {
+            case 1: return "pawn";
+            case 2: return "knight";
+            case 3: return "bishop";
+            case 4: return "rook";
+            case 5: return "queen";
+            case 6: return "king";
+            default: return null;
+        }
+    }
+
     renderMatchState(state) {
         if (state.matchName) this.sessionMatchName = state.matchName;
         if (state.checkmate) this.showEvent("Checkmate!", "Game End");
@@ -144,36 +154,41 @@ class Session {
             this.showBoardTitle("Waiting for opponent");
         else this.showBoardTitle(state.hostName + " vs " + state.guestName);
 
-        for (let i = 0; i < 8; i++) {
-            for (let j = 0; j < 8; j++) {
-                let squareID = i * 8 + j;
-                let piece = state.board[i][j];
-                let square = $("#" + squareID);
-                square.removeClass();
-                square.addClass("square");
-                square.width(this.config.boardSize / 8);
-                square.height(this.config.boardSize / 8);
-                if ((i + j) % 2 !== 0) square.addClass("dark");
-                if (!piece) continue;
-                square.addClass("piece");
-                square.addClass(piece.name + (piece.color === WHITE ? "white" : "black"));
-                // Scale the sprite sheet according to our board size.
-                square.css("background-size", (this.config.boardSize * 0.75) + "px " + 
-                                              (this.config.boardSize * 0.25) + "px");
+        if (state.board) {
+            for (let i = 0; i < 8; i++) {
+                for (let j = 0; j < 8; j++) {
+                    const squareID = i * 8 + j;
+                    const pieceCode = state.board[i][j];
+                    const square = $("#" + squareID);
+                    square.removeClass();
+                    square.addClass("square");
+                    square.width(this.config.boardSize / 8);
+                    square.height(this.config.boardSize / 8);
+                    if ((i + j) % 2 !== 0) square.addClass("dark");
+                    if (!pieceCode) continue;
+                    const pieceData = pieceCode.split(",");
+                    square.addClass("piece");
+                    square.addClass(this.getPieceName(pieceData[0]) + (pieceData[1] === "1" ? "white" : "black"));
+                    // Scale the sprite sheet according to our board size.
+                    square.css("background-size", (this.config.boardSize * 0.75) + "px " + 
+                                                  (this.config.boardSize * 0.25) + "px");
+                }
             }
         }
-        if (state.selected) {
-            let squareID = this.toID(state.selected.position);
-            let square = $("#" + squareID);
-            square.addClass("select");
+        // Clear previous legal move highlights.
+        for (let i = 0; i < 64; i++) {
+            $("#" + i).removeClass("select");
         }
         if (state.legalMoves) {
             let moves = state.legalMoves;
             for (let move of moves) {
-                let position = move.toPos;
-                let validSquare = $("#" + this.toID(position));
+                let validSquare = $("#" + move);
                 validSquare.addClass("select");
             }
+        }
+        if (state.selected) {
+            let square = $("#" + state.selected);
+            square.addClass("select");
         }
     }
 

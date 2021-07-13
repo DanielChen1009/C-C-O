@@ -1,9 +1,9 @@
 const Piece = require("./piece.js");
 
 module.exports = class King extends Piece {
-    name() {
-        return "king";
-    }
+
+    name() { return "king"; }
+    code() { return 6; }
 
     legalMoves() {
         let moves = [];

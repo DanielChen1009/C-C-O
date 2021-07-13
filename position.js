@@ -11,4 +11,8 @@ module.exports = class Position {
     equals(r, c) {
         return this.row === r && this.col === c;
     }
+
+    data() {
+        return this.row * 8 + this.col;
+    }
 }

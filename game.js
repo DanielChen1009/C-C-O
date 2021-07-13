@@ -17,6 +17,7 @@ module.exports = class Game {
         this.selected = null;
         this.board = Array.from(Array(8), () => new Array(8));
         this.legalMoves = null;
+        this.boardUpdated = true;
 
         if (DEBUG) {
             this.board[0][0] = new King(BLACK, 0, 0, this.board);
@@ -38,8 +39,8 @@ module.exports = class Game {
 
     data() {
         return {
-            board: this.board.map(row => row.map(p => p ? p.data() : null)),
-            selected: this.selected ? this.selected.data() : null,
+            board: this.boardUpdated ? this.board.map(row => row.map(p => p ? p.data() : null)) : null,
+            selected: this.selected ? this.selected.position.data() : null,
             legalMoves: this.legalMoves ? this.legalMoves.map(m => m.data()) : null,
             checkmate: this.hasNoMoves() && this.isChecked,
             stalemate: this.hasNoMoves() && !this.isChecked,
@@ -57,8 +58,8 @@ module.exports = class Game {
         this.board[pos][7] = new Rook(color, pos, 7, this.board);
     }
 
+    // Checks whether the piece can move to r,c. If so, apply the move and return true, else false.
     movePiece(r, c) {
-        // This case is where the piece actually will move.
         for (let move of this.legalMoves) {
             if (move.toPos.equals(r, c)) {
                 if (!this.selected.moved) this.selected.moved = true;
@@ -68,13 +69,15 @@ module.exports = class Game {
                 this.selected = null;
                 this.turn = this.opposite(this.turn);
                 this.isChecked = this.checkForCheck(this.turn);
-                break;
+                this.boardUpdated = true;
+                return true;
             }
         }
+        return false;
     }
 
-    processLegalMoves() {
-        // This trims away the legal moves that causes the own king to be in check.
+    // This trims away the legal moves that causes the own king to be in check.
+    trimLegalMoves() {
         for (let i = this.legalMoves.length - 1; i >= 0; i--) {
             let move = this.legalMoves[i];
             move.apply();
@@ -88,7 +91,7 @@ module.exports = class Game {
     handleInput(r, c) {
         // This case is where legal moves are already highlighted on the board.
         if (this.legalMoves) {
-            this.movePiece(r, c);
+            this.boardUpdated = this.movePiece(r, c);
             // This is when the user clicked on nothing.
             if (!this.board[r][c]) {
                 this.legalMoves = null;
@@ -108,10 +111,11 @@ module.exports = class Game {
 
             this.legalMoves = this.selected ?
                 this.selected.legalMoves() : null;
+            this.boardUpdated = false;
         }
 
-        if(this.legalMoves) {
-            this.processLegalMoves();
+        if (this.legalMoves) {
+            this.trimLegalMoves();
         }
     }
 

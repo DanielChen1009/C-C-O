@@ -2,9 +2,8 @@ const Piece = require("./piece.js");
 
 module.exports = class Pawn extends Piece {
 
-    name() {
-        return "pawn";
-    }
+    name() { return "pawn"; }
+    code() { return 1; }
 
     legalMoves() {
         let moves = [];

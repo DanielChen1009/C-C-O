@@ -10,10 +10,7 @@ module.exports = class Move {
     }
 
     data() {
-        return {
-            toPos: this.toPos,
-            fromPos: this.fromPos
-        }
+        return this.toPos.row * 8 + this.toPos.col;
     }
 
     apply() {

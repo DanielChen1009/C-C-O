@@ -12,11 +12,7 @@ module.exports = class Piece {
     }
 
     data() {
-        return {
-            name: this.name(),
-            position: this.position,
-            color: this.mycolor,
-        }
+        return this.code() + "," + this.color();
     }
 
     isValidSquare(dR, dC) {
@@ -58,15 +54,15 @@ module.exports = class Piece {
         return moves;
     }
 
-    name() {
-        return null;
-    }
+    // An on-wire single number representation of this piece.
+    code() { return null; }
 
-    color() {
-        return this.mycolor;
-    }
+    // Unique human-readable name for this piece type.
+    name() { return null; }
 
-    legalMoves() {
-        return null
-    };
+    // The color of this piece. Either white or black.
+    color() { return this.mycolor; }
+
+    // The current legal moves for this piece.
+    legalMoves() { return null; };
 }
