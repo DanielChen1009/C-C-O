@@ -12,9 +12,7 @@
 .square {
     display: block;
     padding: 0;
-    outline: none;
     background-color: rgb(239, 239, 239);
-    border-width: 1px;
 }
 
 .dark {
@@ -23,6 +21,7 @@
 
 .select {
     background-color: rgb(144, 238, 144);
+    padding: 0px;
 }
 
 tr, td {
@@ -33,6 +32,8 @@ tr, td {
     background-image: url("chesspieces.png");
     background-repeat: no-repeat;
     background-size: 300px 100px;
+    background-color: transparent;
+    border: 0;
 }
 
 .kingwhite {

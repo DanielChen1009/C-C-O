@@ -124,12 +124,7 @@ class Session {
     handleClick(id) {
         let r = Math.floor(id / 8);
         let c = id % 8;
-
         this.socket.emit('input', {row: r, col: c, matchName: this.sessionMatchName});
-    }
-
-    toID(pos) {
-        return pos.row * 8 + pos.col;
     }
 
     getPieceName(pieceCode) {
@@ -144,6 +139,7 @@ class Session {
         }
     }
 
+    // Renders pieces and other misc state onto the board.
     renderMatchState(state) {
         if (state.matchName) this.sessionMatchName = state.matchName;
         if (state.checkmate) this.showEvent("Checkmate!", "Game End");
@@ -158,24 +154,40 @@ class Session {
             for (let i = 0; i < 8; i++) {
                 for (let j = 0; j < 8; j++) {
                     const squareID = i * 8 + j;
-                    const pieceCode = state.board[i][j];
                     const square = $("#" + squareID);
-                    square.removeClass();
-                    square.addClass("square");
+                    square.empty();
                     square.width(this.config.boardSize / 8);
                     square.height(this.config.boardSize / 8);
-                    if ((i + j) % 2 !== 0) square.addClass("dark");
+                    
+                    const pieceCode = state.board[i][j];
                     if (!pieceCode) continue;
+
+                    // A piece is a semi-transparent object that sits on top
+                    // of a square and has JQuery draggable features enabled.
+                    const piece = $("<div>").appendTo(square);
+                    piece.width(this.config.boardSize / 8);
+                    piece.height(this.config.boardSize / 8);
+                    piece.on("click", () => session.handleClick(i * 8 + j));
+                    piece.draggable({
+                        cursor: "move",
+                        start: () => session.handleClick(i * 8 + j),
+                        revert: true,
+                        revertDuration: 50,
+                        stack: ".piece"
+                    });
+
+                    // Figure out what piece it is from the server data and
+                    // assign the appropriate CSS classes.
                     const pieceData = pieceCode.split(",");
-                    square.addClass("piece");
-                    square.addClass(this.getPieceName(pieceData[0]) + (pieceData[1] === "1" ? "white" : "black"));
+                    piece.addClass("piece");
+                    piece.addClass(this.getPieceName(pieceData[0]) + (pieceData[1] === "1" ? "white" : "black"));
                     // Scale the sprite sheet according to our board size.
-                    square.css("background-size", (this.config.boardSize * 0.75) + "px " + 
+                    piece.css("background-size", (this.config.boardSize * 0.75) + "px " + 
                                                   (this.config.boardSize * 0.25) + "px");
                 }
             }
         }
-        // Clear previous legal move highlights.
+        // Clear previous legal move highlights, and make new ones as needed.
         for (let i = 0; i < 64; i++) {
             $("#" + i).removeClass("select");
         }
@@ -192,6 +204,7 @@ class Session {
         }
     }
 
+    // Builds the basic board backbone for pieces to be placed on.
     buildBoard() {
         let content = $("<table>");
         content.addClass("board");
@@ -200,13 +213,14 @@ class Session {
         for (let i = 0; i < 8; i++) {
             let row = $("<tr>");
             for (let j = 0; j < 8; j++) {
-                let cell = $("<td>");
-                let button = $("<button>");
-                button.addClass("square");
-                button.attr("type", "button");
-                button.attr("id", i * 8 + j);
-                button.on("click", () => session.handleClick(i * 8 + j));
-                cell.append(button);
+                const cell = $("<td>");
+                const square = $("<div>").addClass("square").attr("id", i * 8 + j);
+                square.on("click", () => session.handleClick(i * 8 + j));
+                square.droppable({
+                    drop: () => session.handleClick(i * 8 + j),
+                })
+                if ((i + j) % 2 !== 0) square.addClass("dark");
+                cell.append(square);
                 row.append(cell);
             }
             content.append(row);
