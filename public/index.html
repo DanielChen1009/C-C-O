@@ -35,7 +35,7 @@
             $(document).ready(() => {
                 session = new Session({
                     boardContainerId: "content",
-                    boardSize: Math.min($(window).width(), $(window).height()) * 0.7
+                    boardSize: (Math.min($(window).width(), $(window).height()) * 0.7) & ~7
                 });
             });
         </script>
