@@ -65,7 +65,7 @@ function leaveMatches(player) {
             guest.socket.emit("host disconnected", player.name);
             guest.sendPersonalMatchState();
         }
-        player.socket.emit("message", "Left hosted match " + player.hostedMatch.name);
+        player.socket.emit("message", "Left hosted match: " + player.hostedMatch.name);
         matches.delete(player.hostedMatch.name);
         console.log("Deleted hosted match: " + player.hostedMatch.name);
         player.hostedMatch = null;
@@ -75,7 +75,7 @@ function leaveMatches(player) {
         host.hostedMatch = null;
         host.socket.emit("guest disconnected", player.name);
         host.sendPersonalMatchState();
-        player.socket.emit("message", "Left match " + player.joinedMatch.name);
+        player.socket.emit("message", "Left match: " + player.joinedMatch.name);
         matches.delete(player.joinedMatch.name);
         console.log("Deleted joined match: " + player.joinedMatch.name);
         player.joinedMatch = null;
@@ -133,13 +133,14 @@ io.on("connection", (socket) => {
         io.to(input.matchName).emit("match state", match.data());
     });
 
-    socket.on("new match", (input) => {
-        if (!input.matchName) {
+    socket.on("new match", (matchName) => {
+        if (!matchName) {
             socket.emit('error', 'Must specify match name');
             return;
         }
-        console.log("Creating new match for player " + input.playerName + ": " + input.matchName);
         const player = players.get(socket.id);
+        if (!player) return;
+        console.log("Creating new match for player " + player.name + ": " + matchName);
         if (player.hostedMatch) {
             socket.emit('error', 'You are already hosting a match: ' + player.hostedMatch.name);
             return;
@@ -148,17 +149,18 @@ io.on("connection", (socket) => {
             socket.emit('error', 'You are already in a match: ' + player.joinedMatch.name);
             return;
         }
-        if (matches.has(input.matchName)) {
-            socket.emit('error', 'Match already exists: ' + input.matchName);
+        if (matches.has(matchName)) {
+            socket.emit('error', 'Match already exists: ' + matchName);
             return;
         }
-        socket.join(input.matchName);
-        const newMatch = new Match(player, input.matchName);
-        matches.set(input.matchName, newMatch);
+        socket.join(matchName);
+        const newMatch = new Match(player, matchName);
+        matches.set(matchName, newMatch);
         player.hostedMatch = newMatch;
         player.joinedMatch = null;
-        socket.emit("set match", newMatch.name);
-        socket.emit("message", "Created new match: " + input.matchName);
+        socket.emit("set match", matchName);
+        socket.emit("message", "Created new match: " + matchName);
+        io.to(matchName).emit("match state", newMatch.data());
         emitMatches();
     });
 
@@ -203,7 +205,7 @@ io.on("connection", (socket) => {
         }
         const match = matches.get(matchName);
         if (!match) {
-            socket.emit("error", "Match " + matchName + " does not exist.");
+            socket.emit("error", "Match does not exist: " + matchName);
             emitMatches();
             return;
         }

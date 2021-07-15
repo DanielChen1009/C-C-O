@@ -8,12 +8,6 @@ class Session {
         this.socket = io(this.config.backend);
         this.socket.on("connect", () => this.initSocketHandlers());
 
-        // Set up all button events.
-        $("#creatematch").on("click", "#createbutton", () => this.createMatch());
-        $("#playerinfo").on("click", "#updatename", () => {
-            this.socket.emit("update name", $("#playername").val());
-        });
-
         // Create the DOM structure for the game board.
         this.buildBoard();        
     }
@@ -24,7 +18,7 @@ class Session {
             this.sessionMatchName = matchName;
         });
         this.socket.on("match state", (state) => {
-            this.renderMatchState(state);;
+            this.renderMatchState(state);
         });
         this.socket.on("error", (msg) => {
             this.showEvent(msg, "Error");
@@ -54,6 +48,15 @@ class Session {
 
         // Show a nice welcome message.
         this.showEvent("Welcome to C-C-O! Play against yourself or create/join matches against others above.");
+        this.initButtonHandlers();
+    }
+
+    // Sets up all button events.
+    initButtonHandlers() {
+        $("#creatematch").on("click", "#createbutton", () => this.createMatch());
+        $("#playerinfo").on("click", "#updatename", () => {
+            this.socket.emit("update name", $("#playername").val());
+        });
     }
 
     // Returns the DOM element for the square at position pos (0 - 63).
@@ -128,9 +131,7 @@ class Session {
     }
 
     createMatch() {
-        let playerName = $("#playername").val();
-        let matchName = $("#matchname").val();
-        this.socket.emit("new match", {playerName: playerName, matchName: matchName});
+        this.socket.emit("new match", $("#matchname").val());
     }
 
     handleClick(id) {
@@ -225,15 +226,19 @@ class Session {
                 const cell = $("<td>");
                 const square = $("<div>").addClass("square").attr("id", squareID);
                 square.on("click", () => session.handleClick(squareID));
+                // Each square is a JQuery UI "droppable" which are legal targets for pieces which are
+                // "draggable" onto them.
                 square.droppable({
                     hoverClass: "hover",
                     drop: (event, ui) => {
                         // Only have the piece revert back to original position if the legal move
                         // highlight is not present on the square the piece got dropped onto.
                         // Otherwise, attach it to the dropped-on square.
-                        const legal = square.children(".legalmove").length > 0;
-                        ui.draggable.draggable("option", "revert", !legal);
-                        if (legal) ui.draggable.detach().css({top: 0,left: 0}).appendTo(square);
+                        if (ui.draggable.hasClass("ui-draggable")) {
+                            const legal = square.children(".legalmove").length > 0;
+                            ui.draggable.draggable("option", "revert", !legal);
+                            if (legal) ui.draggable.detach().appendTo(square).css({top: 0,left: 0, position: "absolute"});
+                        }
                         session.handleClick(squareID);
                     }
                 })
