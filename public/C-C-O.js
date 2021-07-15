@@ -155,7 +155,7 @@ class Session {
 
     // Renders pieces and other misc state onto the board.
     renderMatchState(state) {
-        if (state.matchName) this.sessionMatchName = state.matchName;
+        if (state.matchName !== undefined) this.sessionMatchName = state.matchName;
         if (state.checkmate) this.showEvent("Checkmate!", "Game End");
         if (state.stalemate) this.showEvent("Stalemate!", "Game End");
 
