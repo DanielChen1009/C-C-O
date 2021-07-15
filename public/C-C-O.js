@@ -24,7 +24,7 @@ class Session {
             this.sessionMatchName = matchName;
         });
         this.socket.on("match state", (state) => {
-            this.renderMatchState(state);
+            this.renderMatchState(state);;
         });
         this.socket.on("error", (msg) => {
             this.showEvent(msg, "Error");
@@ -182,9 +182,8 @@ class Session {
                     piece.draggable({
                         cursor: "move",
                         start: () => session.handleClick(squareID),
-                        revert: true,
                         revertDuration: 50,
-                        stack: ".piece"
+                        stack: ".piece",
                     });
 
                     // Figure out what piece it is from the server data and
@@ -200,15 +199,16 @@ class Session {
         }
         // Clear any previous highlights. New ones will be created as needed right after.
         for (let i = 0; i < 64; i++) {
-            this.square(i).children(".highlight").remove();
+            this.square(i).children(".legalmove").remove();
+            this.square(i).children(".selected").remove();
         }
         if (state.legalMoves) {
             for (let move of state.legalMoves) {
-                this.square(move).append($("<div>").addClass("highlight"));
+                this.square(move).append($("<div>").addClass("legalmove"));
             }
         }
         if (state.selected) {
-            this.square(state.selected).append($("<div>").addClass("highlight"));
+            this.square(state.selected).append($("<div>").addClass("selected"));
         }
     }
 
@@ -226,12 +226,16 @@ class Session {
                 const square = $("<div>").addClass("square").attr("id", squareID);
                 square.on("click", () => session.handleClick(squareID));
                 square.droppable({
-                    drop: () => {
-                        this.square(squareID).removeClass("hover");
+                    hoverClass: "hover",
+                    drop: (event, ui) => {
+                        // Only have the piece revert back to original position if the legal move
+                        // highlight is not present on the square the piece got dropped onto.
+                        // Otherwise, attach it to the dropped-on square.
+                        const legal = square.children(".legalmove").length > 0;
+                        ui.draggable.draggable("option", "revert", !legal);
+                        if (legal) ui.draggable.detach().css({top: 0,left: 0}).appendTo(square);
                         session.handleClick(squareID);
-                    },
-                    over: () => this.square(squareID).addClass("hover"),
-                    out: () => this.square(squareID).removeClass("hover")
+                    }
                 })
                 if ((i + j) % 2 !== 0) square.addClass("dark");
                 cell.append(square);

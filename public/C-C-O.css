@@ -22,7 +22,7 @@
     background-color: rgb(166, 238, 166);
 }
 
-.highlight {
+.legalmove, .selected {
     background-color: rgb(144, 238, 144);
     opacity: 0.6;
     padding: 0;
