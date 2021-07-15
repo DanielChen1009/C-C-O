@@ -82,12 +82,17 @@ io.on("connection", (socket) => {
     });
     socket.on("input", (input) => {
         const player = players.get(socket.id);
+        let match = null;
         if (!input.matchName) {
-            player.personalMatch.game.handleInput(input.row, input.col);
-            player.sendPersonalMatchState();
-            return;
+            if (player.joinedMatch) match = player.joinedMatch;
+            else if (player.hostedMatch) match = player.hostedMatch;
+            else {
+                player.personalMatch.game.handleInput(input.row, input.col);
+                player.sendPersonalMatchState();
+                return;
+            }
         }
-        const match = matches.get(input.matchName)
+        if (!match) match = matches.get(input.matchName)
         if (!match) {
             socket.emit("error", "Match does not exist. Opponent disconnected.");
             socket.emit("exit match");

@@ -52,6 +52,11 @@ class Session {
         this.showEvent("Welcome to C-C-O! Play against yourself or create/join matches against others above.");
     }
 
+    // Returns the DOM element for the square at position pos (0 - 63).
+    square(pos) {
+        return $("#" + pos);
+    }
+
     // Shows one entry in the event log.
     showEvent(msg, prefix) {
         let eventLog = $("#event-log");
@@ -154,7 +159,7 @@ class Session {
             for (let i = 0; i < 8; i++) {
                 for (let j = 0; j < 8; j++) {
                     const squareID = i * 8 + j;
-                    const square = $("#" + squareID);
+                    const square = this.square(squareID);
                     square.empty();
                     square.width(this.config.boardSize / 8);
                     square.height(this.config.boardSize / 8);
@@ -165,12 +170,10 @@ class Session {
                     // A piece is a semi-transparent object that sits on top
                     // of a square and has JQuery draggable features enabled.
                     const piece = $("<div>").appendTo(square);
-                    piece.width(this.config.boardSize / 8);
-                    piece.height(this.config.boardSize / 8);
-                    piece.on("click", () => session.handleClick(i * 8 + j));
+                    piece.on("click", () => session.handleClick(squareID));
                     piece.draggable({
                         cursor: "move",
-                        start: () => session.handleClick(i * 8 + j),
+                        start: () => session.handleClick(squareID),
                         revert: true,
                         revertDuration: 50,
                         stack: ".piece"
@@ -187,20 +190,17 @@ class Session {
                 }
             }
         }
-        // Clear previous legal move highlights, and make new ones as needed.
+        // Clear any previous highlights. New ones will be created as needed right after.
         for (let i = 0; i < 64; i++) {
-            $("#" + i).removeClass("select");
+            this.square(i).children(".highlight").remove();
         }
         if (state.legalMoves) {
-            let moves = state.legalMoves;
-            for (let move of moves) {
-                let validSquare = $("#" + move);
-                validSquare.addClass("select");
+            for (let move of state.legalMoves) {
+                this.square(move).append($("<div>").addClass("highlight"));
             }
         }
         if (state.selected) {
-            let square = $("#" + state.selected);
-            square.addClass("select");
+            this.square(state.selected).append($("<div>").addClass("highlight"));
         }
     }
 
@@ -213,11 +213,17 @@ class Session {
         for (let i = 0; i < 8; i++) {
             let row = $("<tr>");
             for (let j = 0; j < 8; j++) {
+                const squareID = i * 8 + j;
                 const cell = $("<td>");
-                const square = $("<div>").addClass("square").attr("id", i * 8 + j);
-                square.on("click", () => session.handleClick(i * 8 + j));
+                const square = $("<div>").addClass("square").attr("id", squareID);
+                square.on("click", () => session.handleClick(squareID));
                 square.droppable({
-                    drop: () => session.handleClick(i * 8 + j),
+                    drop: () => {
+                        this.square(squareID).removeClass("hover");
+                        session.handleClick(squareID);
+                    },
+                    over: () => this.square(squareID).addClass("hover"),
+                    out: () => this.square(squareID).removeClass("hover")
                 })
                 if ((i + j) % 2 !== 0) square.addClass("dark");
                 cell.append(square);
