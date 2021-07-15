@@ -28,15 +28,14 @@ function rooms(socket) {
     return Array.from(socket.rooms).filter(r => r !== socket.id)[0];
 }
 
-// Emit all the current available matches to join.
+// Emit all the current active matches.
 function emitMatches() {
     let result = [];
     for (let match of matches.values()) {
-        // Match has already started. Don't list it.
-        if (match.host && match.guest) continue;
         result.push({
             name: match.name,
-            host: match.host.name
+            host: match.host.name,
+            guest: match.guest ? match.guest.name : null
         });
     }
     io.sockets.emit("matches", result);
@@ -55,6 +54,32 @@ function generateName() {
         });
     } while (nameMap.has(name))
     return name;
+}
+
+// Make the given player leave all its matches.
+function leaveMatches(player) {
+    if (player.hostedMatch) {
+        const guest = player.hostedMatch.guest;
+        if (guest) {
+            guest.joinedMatch = null;
+            guest.socket.emit("host disconnected", player.name);
+            guest.sendPersonalMatchState();
+        }
+        player.socket.emit("message", "Left hosted match " + player.hostedMatch.name);
+        matches.delete(player.hostedMatch.name);
+        console.log("Deleted hosted match: " + player.hostedMatch.name);
+        player.hostedMatch = null;
+    }
+    if (player.joinedMatch) {
+        const host = player.joinedMatch.host;
+        host.hostedMatch = null;
+        host.socket.emit("guest disconnected", player.name);
+        host.sendPersonalMatchState();
+        player.socket.emit("message", "Left match " + player.joinedMatch.name);
+        matches.delete(player.joinedMatch.name);
+        console.log("Deleted joined match: " + player.joinedMatch.name);
+        player.joinedMatch = null;
+    }
 }
 
 // All event handlers.
@@ -80,6 +105,7 @@ io.on("connection", (socket) => {
         socket.emit("message", "Updated name to " + newName);
         emitMatches();
     });
+
     socket.on("input", (input) => {
         const player = players.get(socket.id);
         let match = null;
@@ -95,7 +121,7 @@ io.on("connection", (socket) => {
         if (!match) match = matches.get(input.matchName)
         if (!match) {
             socket.emit("error", "Match does not exist. Opponent disconnected.");
-            socket.emit("exit match");
+            socket.emit("set match", null);
             player.sendPersonalMatchState();
             return;
         }
@@ -131,6 +157,8 @@ io.on("connection", (socket) => {
         matches.set(input.matchName, newMatch);
         player.hostedMatch = newMatch;
         player.joinedMatch = null;
+        socket.emit("set match", newMatch.name);
+        socket.emit("message", "Created new match: " + input.matchName);
         emitMatches();
     });
 
@@ -146,24 +174,7 @@ io.on("connection", (socket) => {
         if (!players.get(socket.id)) return;
         const player = players.get(socket.id);
         console.log("Disconnecting " + player.name);
-        if (player.hostedMatch) {
-            const guest = player.hostedMatch.guest;
-            if (guest) {
-                guest.joinedMatch = null;
-                guest.socket.emit("host disconnected", player.name);
-                guest.sendPersonalMatchState();
-            }
-            matches.delete(player.hostedMatch.name);
-            console.log("Deleted hosted match: " + player.hostedMatch.name);
-        }
-        if (player.joinedMatch) {
-            const host = player.joinedMatch.host;
-            host.hostedMatch = null;
-            host.socket.emit("guest disconnected", player.name);
-            host.sendPersonalMatchState();
-            matches.delete(player.joinedMatch.name);
-            console.log("Deleted joined match: " + player.joinedMatch.name);
-        }
+        leaveMatches(player);
         nameMap.delete(player.name);
         players.delete(socket.id);
     });
@@ -206,6 +217,17 @@ io.on("connection", (socket) => {
         io.to(matchName).emit("match state", match.data());
         socket.emit("message", "Joined match " + match.name + " hosted by " + match.host.name);
         match.host.socket.emit("guest joined", player.name);
+        emitMatches();
+    });
+
+    socket.on("leave match", () => {
+        const player = players.get(socket.id);
+        if (!player.hostedMatch && !player.joinedMatch) {
+            socket.emit("error", "You don't have a match to leave");
+            return;
+        }
+        leaveMatches(player);
+        player.sendPersonalMatchState();
         emitMatches();
     });
 });

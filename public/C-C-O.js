@@ -1,9 +1,12 @@
+// Sessions is a global object that knows everything about the current user
+// session including Socket.IO connection, UI events, and DOM management.
 class Session {
     constructor(config) {
         this.config = config;
         this.sessionMatchName = null;
         this.playerName = null;
         this.socket = io(this.config.backend);
+        this.socket.on("connect", () => this.initSocketHandlers());
 
         // Set up all button events.
         $("#creatematch").on("click", "#createbutton", () => this.createMatch());
@@ -11,10 +14,14 @@ class Session {
             this.socket.emit("update name", $("#playername").val());
         });
 
-        // Set up all socket.io event handlers.
-        this.socket.on("exit match", () => {
-            this.showEvent("Exited match " + this.sessionMatchName, "Info");
-            this.sessionMatchName = null;
+        // Create the DOM structure for the game board.
+        this.buildBoard();        
+    }
+
+    // Sets up all socket.io event handlers.
+    initSocketHandlers() {
+        this.socket.on("set match", (matchName) => {
+            this.sessionMatchName = matchName;
         });
         this.socket.on("match state", (state) => {
             this.renderMatchState(state);
@@ -44,9 +51,6 @@ class Session {
         this.socket.emit("get matches");
         this.socket.emit("get personal game state");
         this.socket.emit("get player info");
-
-        // Create the DOM structure for the game board.
-        this.buildBoard();
 
         // Show a nice welcome message.
         this.showEvent("Welcome to C-C-O! Play against yourself or create/join matches against others above.");
@@ -95,21 +99,20 @@ class Session {
             let cell1 = $("<td>");
             let cell2 = $("<td>");
             let cell3 = $("<td>");
-            let joinButton = $("<button>");
-            if (match.host === this.playerName) {
-                joinButton.html("Waiting");
-                joinButton.prop("disabled", true);
+            let actionButton = $("<button>").addClass("btn").addClass("btn-primary");;
+            if (match.host === this.playerName || match.guest === this.playerName) {
+                actionButton.html("Leave");
+                actionButton.on("click", () => this.leaveMatch());
             } else {
-                joinButton.html("Join");
+                actionButton.html("Join");
+                actionButton.on("click", () => this.joinMatch(match.name));
                 if (this.sessionMatchName) {
-                    joinButton.prop("disabled", true);
+                    actionButton.prop("disabled", true);
                 }
             }
-            joinButton.addClass("btn").addClass("btn-primary");
-            joinButton.on("click", () => this.joinMatch(match.name));
             cell1.append($("<p>").addClass("text-info").addClass("text-center").text(match.name));
             cell2.append($("<p>").addClass("text-info").addClass("text-center").text(match.host));
-            cell3.append(joinButton);
+            cell3.append(actionButton);
             row.append(cell1).append(cell2).append(cell3);
             tableBody.append(row);
         }
@@ -118,6 +121,10 @@ class Session {
 
     joinMatch(matchName) {
         this.socket.emit("join match", matchName);
+    }
+
+    leaveMatch() {
+        this.socket.emit("leave match");
     }
 
     createMatch() {
@@ -132,6 +139,7 @@ class Session {
         this.socket.emit('input', {row: r, col: c, matchName: this.sessionMatchName});
     }
 
+    // Get the piece name given the piece code received from the server.
     getPieceName(pieceCode) {
         switch (parseInt(pieceCode)) {
             case 1: return "pawn";
