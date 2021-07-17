@@ -183,8 +183,9 @@ class Session {
                     piece.draggable({
                         cursor: "move",
                         start: () => session.handleClick(squareID),
-                        revertDuration: 50,
+                        revertDuration: 100,
                         stack: ".piece",
+                        revert: true,
                     });
 
                     // Figure out what piece it is from the server data and
@@ -208,8 +209,9 @@ class Session {
                 this.square(move).append($("<div>").addClass("legalmove"));
             }
         }
-        if (state.selected) {
+        if (state.selected !== undefined) {
             this.square(state.selected).append($("<div>").addClass("selected"));
+            this.square(state.selected).children(".piece").first().addClass("movable");
         }
     }
 
@@ -231,14 +233,14 @@ class Session {
                 square.droppable({
                     hoverClass: "hover",
                     drop: (event, ui) => {
+                        if (!ui.draggable.hasClass("movable") || !ui.draggable.hasClass("ui-draggable")) return;
+
                         // Only have the piece revert back to original position if the legal move
                         // highlight is not present on the square the piece got dropped onto.
                         // Otherwise, attach it to the dropped-on square.
-                        if (ui.draggable.hasClass("ui-draggable")) {
-                            const legal = square.children(".legalmove").length > 0;
-                            ui.draggable.draggable("option", "revert", !legal);
-                            if (legal) ui.draggable.detach().appendTo(square).css({top: 0,left: 0, position: "absolute"});
-                        }
+                        const legal = square.children(".legalmove").length > 0;
+                        ui.draggable.draggable("option", "revert", !legal);
+                        if (legal) ui.draggable.detach().appendTo(square).css({top: 0,left: 0, position: "absolute"});
                         session.handleClick(squareID);
                     }
                 })
