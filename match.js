@@ -6,6 +6,9 @@ module.exports = class Match {
         this.name = matchName;
         this.host = host;
         this.guest = null;
+        const rand = Math.random();
+        this.hostColor = rand < 0.5 ? 1 : -1;
+        this.guestColor = rand < 0.5 ? -1 : 1;
     }
 
     data() {

@@ -41,6 +41,7 @@ function emitMatches() {
     io.sockets.emit("matches", result);
 }
 
+
 // Generate a random player name.
 function generateName() {
     const numberDictionary = NumberDictionary.generate({ min: 100, max: 999 });
@@ -113,7 +114,7 @@ io.on("connection", (socket) => {
             if (player.joinedMatch) match = player.joinedMatch;
             else if (player.hostedMatch) match = player.hostedMatch;
             else {
-                player.personalMatch.game.handleInput(input.row, input.col);
+                player.personalMatch.game.handleInput(input.row, input.col, player.personalMatch.game.turn);
                 player.sendPersonalMatchState();
                 return;
             }
@@ -129,7 +130,10 @@ io.on("connection", (socket) => {
             socket.emit("error", "You are hosting a match. Still waiting for an opponent!");
             return;
         }
-        match.game.handleInput(input.row, input.col);
+        let color;
+        if (players.get(socket.id) === match.host) color = match.hostColor;
+        else color = match.guestColor;
+        match.game.handleInput(input.row, input.col, color);
         io.to(input.matchName).emit("match state", match.data());
     });
 
@@ -188,7 +192,7 @@ io.on("connection", (socket) => {
     socket.on("join match", (matchName) => {
         const player = players.get(socket.id);
         if (player.hostedMatch) {
-            if (matchName == player.hostedMatch.name) {
+            if (matchName === player.hostedMatch.name) {
                 socket.emit("error", "Cannot join a match you hosted");
             } else {
                 socket.emit("error", "Cannot join another match while you are hosting one.");
@@ -196,7 +200,7 @@ io.on("connection", (socket) => {
             return;
         }
         if (player.joinedMatch) {
-            if (matchName == player.joinedMatch.name) {
+            if (matchName === player.joinedMatch.name) {
                 socket.emit("error", "You already joined this match");
             } else {
                 socket.emit("error", "Cannot join a match while you joined another one.");
@@ -218,7 +222,10 @@ io.on("connection", (socket) => {
         socket.join(matchName);
         io.to(matchName).emit("match state", match.data());
         socket.emit("message", "Joined match " + match.name + " hosted by " + match.host.name);
+        socket.emit("message", "Your color is " + (match.guestColor === 1 ? "WHITE" : "BLACK"));
+
         match.host.socket.emit("guest joined", player.name);
+        match.host.socket.emit("message", "Your color is " + (match.hostColor === 1 ? "WHITE" : "BLACK"));
         emitMatches();
     });
 

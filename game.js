@@ -88,8 +88,9 @@ module.exports = class Game {
         }
     }
 
-    handleInput(r, c) {
+    handleInput(r, c, color) {
         // This case is where legal moves are already highlighted on the board.
+        if (this.turn !== color) return;
         if (this.legalMoves) {
             this.boardUpdated = this.movePiece(r, c);
             // This is when the user clicked on nothing.
