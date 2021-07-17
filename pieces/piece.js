@@ -26,7 +26,12 @@ module.exports = class Piece {
     }
 
     getPiece(dR, dC) {
-        return this.pieceBoard[this.position.row + dR][this.position.col + dC];
+        let r = this.position.row + dR;
+        let c = this.position.col + dC;
+
+        if (r > 7 || r < 0) return null;
+        if (c > 7 || c < 0) return null;
+        return this.pieceBoard[r][c];
     }
 
     isEnemy(piece) {
