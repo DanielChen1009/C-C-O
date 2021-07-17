@@ -2,6 +2,9 @@ const express = require('express');
 const socketio = require('socket.io');
 const Match = require('./match.js');
 const Player = require('./player.js');
+const {uniqueNamesGenerator, NumberDictionary, adjectives, names} = require('unique-names-generator');
+const {WHITE, BLACK} = require("./constants.js");
+
 const app = express();
 app.use(express.static("public"));
 
@@ -11,22 +14,14 @@ const server = app.listen(PORT, () => {
 });
 const io = socketio(server);
 
-const {uniqueNamesGenerator, NumberDictionary, adjectives, names} = require('unique-names-generator');
-
 // SocketID -> Player
 let players = new Map();
 
-// Match Name -> Match
+// Match name -> Match
 let matches = new Map();
 
 // Player name -> Player.
 let nameMap = new Map();
-
-// Return all rooms the socket belongs to. If socket is not specified, return all rooms.
-function rooms(socket) {
-    if (!socket) return io.sockets.adapter.rooms;
-    return Array.from(socket.rooms).filter(r => r !== socket.id)[0];
-}
 
 // Emit all the current active matches.
 function emitMatches() {
@@ -41,8 +36,7 @@ function emitMatches() {
     io.sockets.emit("matches", result);
 }
 
-
-// Generate a random player name.
+// Generate a random player name that is not in the current nameMap.
 function generateName() {
     const numberDictionary = NumberDictionary.generate({ min: 100, max: 999 });
     let name = "";
@@ -64,7 +58,7 @@ function leaveMatches(player) {
         if (guest) {
             guest.joinedMatch = null;
             guest.socket.emit("host disconnected", player.name);
-            guest.sendPersonalMatchState();
+            guest.personalMatch.emit();
         }
         player.socket.emit("message", "Left hosted match: " + player.hostedMatch.name);
         matches.delete(player.hostedMatch.name);
@@ -75,7 +69,7 @@ function leaveMatches(player) {
         const host = player.joinedMatch.host;
         host.hostedMatch = null;
         host.socket.emit("guest disconnected", player.name);
-        host.sendPersonalMatchState();
+        host.personalMatch.emit();
         player.socket.emit("message", "Left match: " + player.joinedMatch.name);
         matches.delete(player.joinedMatch.name);
         console.log("Deleted joined match: " + player.joinedMatch.name);
@@ -88,8 +82,8 @@ io.on("connection", (socket) => {
     const playerName = generateName();
     const newPlayer = new Player(playerName, socket, new Match(null, null));
     newPlayer.personalMatch.host = newPlayer;
+    newPlayer.personalMatch.guest = newPlayer;
     players.set(socket.id, newPlayer);
-    players.get(socket.id).personalMatch.guest = newPlayer;
     nameMap.set(newPlayer.name, newPlayer);
     socket.emit("player info", newPlayer.name);
 
@@ -115,7 +109,7 @@ io.on("connection", (socket) => {
             else if (player.hostedMatch) match = player.hostedMatch;
             else {
                 player.personalMatch.game.handleInput(input.row, input.col, player.personalMatch.game.turn);
-                player.sendPersonalMatchState();
+                player.personalMatch.emit();
                 return;
             }
         }
@@ -123,18 +117,20 @@ io.on("connection", (socket) => {
         if (!match) {
             socket.emit("error", "Match does not exist. Opponent disconnected.");
             socket.emit("set match", null);
-            player.sendPersonalMatchState();
+            player.personalMatch.emit();
             return;
         }
         if (!match.guest) {
             socket.emit("error", "You are hosting a match. Still waiting for an opponent!");
             return;
         }
-        let color;
-        if (players.get(socket.id) === match.host) color = match.hostColor;
-        else color = match.guestColor;
+        const color = match.getColor(player);
+        if (!color) {
+            socket.emit("error", "You are not in the match " + match.name + "! Something went wrong. Please refresh.");
+            return;
+        }
         match.game.handleInput(input.row, input.col, color);
-        io.to(input.matchName).emit("match state", match.data());
+        match.emit();
     });
 
     socket.on("new match", (matchName) => {
@@ -157,20 +153,19 @@ io.on("connection", (socket) => {
             socket.emit('error', 'Match already exists: ' + matchName);
             return;
         }
-        socket.join(matchName);
         const newMatch = new Match(player, matchName);
         matches.set(matchName, newMatch);
         player.hostedMatch = newMatch;
         player.joinedMatch = null;
         socket.emit("set match", matchName);
         socket.emit("message", "Created new match: " + matchName);
-        io.to(matchName).emit("match state", newMatch.data());
+        newMatch.emit();
         emitMatches();
     });
 
     socket.on("get matches", () => emitMatches());
     socket.on("get personal game state", () => {
-        players.get(socket.id).sendPersonalMatchState();
+        players.get(socket.id).personalMatch.emit();
     });
     socket.on("get player info", () => {
         socket.emit("player info", players.get(socket.id).name);
@@ -219,8 +214,7 @@ io.on("connection", (socket) => {
         }
         match.guest = player;
         player.joinedMatch = match;
-        socket.join(matchName);
-        io.to(matchName).emit("match state", match.data());
+        match.emit();
         socket.emit("message", "Joined match " + match.name + " hosted by " + match.host.name);
         socket.emit("message", "Your color is " + (match.guestColor === 1 ? "WHITE" : "BLACK"));
 
@@ -236,7 +230,7 @@ io.on("connection", (socket) => {
             return;
         }
         leaveMatches(player);
-        player.sendPersonalMatchState();
+        player.personalMatch.emit();
         emitMatches();
     });
 });

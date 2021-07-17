@@ -5,10 +5,7 @@ const Rook = require('./pieces/rook.js');
 const Queen = require('./pieces/queen.js');
 const King = require('./pieces/king.js');
 const Piece = require('./pieces/piece.js');
-
-const WHITE = 1;
-const BLACK = -1;
-const DEBUG = false;
+const {WHITE, BLACK, DEBUG} = require("./constants.js");
 
 module.exports = class Game {
     constructor() {

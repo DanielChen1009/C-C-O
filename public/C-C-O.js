@@ -9,7 +9,8 @@ class Session {
         this.socket.on("connect", () => this.initSocketHandlers());
 
         // Create the DOM structure for the game board.
-        this.buildBoard();        
+        this.boardOrientation = 1;
+        this.buildBoard();
     }
 
     // Sets up all socket.io event handlers.
@@ -164,6 +165,8 @@ class Session {
             this.showBoardTitle("Waiting for opponent");
         else this.showBoardTitle(state.hostName + " vs " + state.guestName);
 
+        this.setBoardOrientation(state.yourColor);
+
         if (state.board) {
             for (let i = 0; i < 8; i++) {
                 for (let j = 0; j < 8; j++) {
@@ -212,6 +215,18 @@ class Session {
         if (state.selected !== undefined) {
             this.square(state.selected).append($("<div>").addClass("selected"));
             this.square(state.selected).children(".piece").first().addClass("movable");
+        }
+    }
+
+    // Flips the board vertically.
+    setBoardOrientation(color) {
+        if (color && this.boardOrientation !== color) {
+            $(".board").each(function(elem, index) {
+                var arr = $.makeArray($("tr", this).detach());
+                arr.reverse();
+                $(this).append(arr);
+            });
+            this.boardOrientation = color;
         }
     }
 

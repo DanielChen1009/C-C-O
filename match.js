@@ -1,4 +1,5 @@
 const Game = require("./game.js");
+const {WHITE, BLACK} = require("./constants.js");
 
 module.exports = class Match {
     constructor(host, matchName) {
@@ -6,18 +7,29 @@ module.exports = class Match {
         this.name = matchName;
         this.host = host;
         this.guest = null;
-        const rand = Math.random();
-        this.hostColor = rand < 0.5 ? 1 : -1;
-        this.guestColor = rand < 0.5 ? -1 : 1;
+        this.hostColor = Math.random() < 0.5 || !host ? WHITE : BLACK;
+        this.guestColor = this.hostColor === WHITE ? BLACK : WHITE;
     }
 
-    data() {
+    getColor(player) {
+        return player === this.host ? this.hostColor : player === this.guest ? this.guestColor : null;
+    }
+
+    // Returns data of this match, from the perspective of the given player.
+    data(player) {
         let gameData = this.game.data();
         gameData.matchName = this.name;
         gameData.hostName = this.host.name;
         if (this.guest) {
             gameData.guestName = this.guest.name;
         }
+        gameData.yourColor = this.getColor(player);
         return gameData;
+    }
+
+    // Emit the match state to the players.
+    emit() {
+        this.host.socket.emit("match state", this.data(this.host));
+        if (this.guest && this.guest.name != this.host.name) this.guest.socket.emit("match state", this.data(this.guest));
     }
 }
