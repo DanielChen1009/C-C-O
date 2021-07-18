@@ -6,18 +6,22 @@ const Player = require('./game/player.js');
 const {uniqueNamesGenerator, NumberDictionary, adjectives, names} = require('unique-names-generator');
 const {WHITE, BLACK} = require("./game/constants.js");
 
-const app = express();
-app.use(express.static("public"));
-app.use(cors({
+const CORS_CONFIG = {
     credentials: true,
     origin: ['https://daniel-chen.net', 'https://c-c-o.herokuapp.com']
-}));
+};
+
+const app = express();
+app.use(express.static("public"));
+app.use(cors(CORS_CONFIG));
 
 const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, () => {
     console.log("Listening on port " + PORT + "!");
 });
-const io = socketio(server);
+const io = socketio(server, {
+    cors: CORS_CONFIG
+});
 
 // SocketID -> Player
 let players = new Map();
