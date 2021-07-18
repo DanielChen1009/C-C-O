@@ -1,5 +1,6 @@
 const express = require('express');
 const socketio = require('socket.io');
+const cors = require('cors');
 const Match = require('./game/match.js');
 const Player = require('./game/player.js');
 const {uniqueNamesGenerator, NumberDictionary, adjectives, names} = require('unique-names-generator');
@@ -7,6 +8,10 @@ const {WHITE, BLACK} = require("./game/constants.js");
 
 const app = express();
 app.use(express.static("public"));
+app.use(cors({
+    credentials: true,
+    origin: ['https://daniel-chen.net', 'https://c-c-o.herokuapp.com']
+}));
 
 const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, () => {
