@@ -1,9 +1,9 @@
 const express = require('express');
 const socketio = require('socket.io');
-const Match = require('./match.js');
-const Player = require('./player.js');
+const Match = require('./game/match.js');
+const Player = require('./game/player.js');
 const {uniqueNamesGenerator, NumberDictionary, adjectives, names} = require('unique-names-generator');
-const {WHITE, BLACK} = require("./constants.js");
+const {WHITE, BLACK} = require("./game/constants.js");
 
 const app = express();
 app.use(express.static("public"));

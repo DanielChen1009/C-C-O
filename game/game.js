@@ -1,11 +1,11 @@
-const Pawn = require('./pieces/pawn.js');
-const Knight = require('./pieces/knight.js');
-const Bishop = require('./pieces/bishop.js');
-const Rook = require('./pieces/rook.js');
-const Queen = require('./pieces/queen.js');
-const King = require('./pieces/king.js');
-const Piece = require('./pieces/piece.js');
-const {WHITE, BLACK, DEBUG} = require("./constants.js");
+const Pawn = require('../pieces/pawn.js');
+const Knight = require('../pieces/knight.js');
+const Bishop = require('../pieces/bishop.js');
+const Rook = require('../pieces/rook.js');
+const Queen = require('../pieces/queen.js');
+const King = require('../pieces/king.js');
+const Piece = require('../pieces/piece.js');
+const {WHITE, BLACK, DEBUG} = require("../game/constants.js");
 
 module.exports = class Game {
     constructor() {
@@ -15,6 +15,7 @@ module.exports = class Game {
         this.board = Array.from(Array(8), () => new Array(8));
         this.legalMoves = null;
         this.boardUpdated = true;
+        this.lastMove = null;
 
         if (DEBUG) {
             this.board[0][0] = new King(BLACK, 0, 0, this.board);
@@ -36,11 +37,12 @@ module.exports = class Game {
 
     data() {
         return {
-            board: this.boardUpdated ? this.board.map(row => row.map(p => p ? p.data() : null)) : null,
-            selected: this.selected ? this.selected.position.data() : null,
-            legalMoves: this.legalMoves ? this.legalMoves.map(m => m.data()) : null,
+            board: this.boardUpdated ? this.board.map(row => row.map(p => p ? p.data() : null)) : undefined,
+            selected: this.selected ? this.selected.position.data() : undefined,
+            legalMoves: this.legalMoves ? this.legalMoves.map(m => m.data()) : undefined,
             checkmate: this.hasNoMoves() && this.isChecked,
             stalemate: this.hasNoMoves() && !this.isChecked,
+            lastMove: this.lastMove ? [this.lastMove.fromPos.data(), this.lastMove.toPos.data()] : undefined,
         }
     }
 
@@ -61,6 +63,7 @@ module.exports = class Game {
             if (move.toPos.equals(r, c)) {
                 if (!this.selected.moved) this.selected.moved = true;
                 move.apply();
+                this.lastMove = move;
                 this.isChecked = false;
                 this.legalMoves = null;
                 this.selected = null;

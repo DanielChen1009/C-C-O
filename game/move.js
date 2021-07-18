@@ -1,4 +1,4 @@
-const Position = require("./position.js");
+const Position = require("../game/position.js");
 
 module.exports = class Move {
     constructor(pos, piece) {
@@ -10,7 +10,7 @@ module.exports = class Move {
     }
 
     data() {
-        return this.toPos.row * 8 + this.toPos.col;
+        return this.toPos.data();
     }
 
     apply() {

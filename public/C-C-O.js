@@ -60,9 +60,17 @@ class Session {
         });
     }
 
-    // Returns the DOM element for the square at position pos (0 - 63).
-    square(pos) {
-        return $("#" + pos);
+    // Returns the DOM element for the square at position squareID (0 - 63).
+    square(squareID) {
+        return $("#" + squareID);
+    }
+
+    // Returns row, col (0 - 7 each) in the grid given squareID.
+    toRC(squareID) {
+        return {
+            r: Math.floor(squareID / 8),
+            c: squareID % 8
+        }
     }
 
     // Shows one entry in the event log.
@@ -135,10 +143,9 @@ class Session {
         this.socket.emit("new match", $("#matchname").val());
     }
 
-    handleClick(id) {
-        let r = Math.floor(id / 8);
-        let c = id % 8;
-        this.socket.emit('input', {row: r, col: c, matchName: this.sessionMatchName});
+    handleClick(squareID) {
+        const rc = this.toRC(squareID);
+        this.socket.emit('input', {row: rc.r, col: rc.c, matchName: this.sessionMatchName});
     }
 
     // Get the piece name given the piece code received from the server.
@@ -216,6 +223,11 @@ class Session {
             this.square(state.selected).append($("<div>").addClass("selected"));
             this.square(state.selected).children(".piece").first().addClass("movable");
         }
+        // Draw last move arrows if necessary.
+        if (state.lastMove) {
+            $(".board").children(".arrow").remove();
+            this.drawArrow(state.lastMove[0], state.lastMove[1]);
+        }
     }
 
     // Flips the board vertically.
@@ -267,5 +279,59 @@ class Session {
         }
 
         $("#" + this.config.boardContainerId).append(content);
+    }
+
+    // Returns the x, y position of the given element's center.
+    getCenter(squareID) {
+        const rc = this.toRC(squareID);
+        return {
+            x: (2 * rc.c + 1) * this.config.boardSize / 16,
+            y: (2 * (this.boardOrientation === 1 ? rc.r : 7 - rc.r) + 1) * this.config.boardSize / 16
+        };
+    }
+
+    // This draws an arrow between square IDs "from" and "to".
+    drawArrow(from, to) {
+        from = this.getCenter(from);
+        to = this.getCenter(to);
+
+        const canvas = $("<canvas>").addClass("arrow")
+            .attr("width", this.config.boardSize)
+            .attr("height", this.config.boardSize).appendTo($(".board"));
+        const ctx = canvas[0].getContext('2d');
+
+        const headlen = this.config.boardSize / 30;   // length of head in pixels.
+        const arrowThickness = this.config.boardSize / 40; // Thickness of the arrow line.
+        const angle = Math.atan2(to.y - from.y, to.x - from.x);
+        
+        // starting path of the arrow from the start square to the end square and drawing the stroke
+        ctx.beginPath();
+        ctx.moveTo(from.x, from.y);
+        ctx.lineTo(to.x, to.y);
+        ctx.strokeStyle = "#cc0000";
+        ctx.lineWidth = arrowThickness;
+        ctx.stroke();
+
+        //starting a new path from the head of the arrow to one of the sides of the point
+        ctx.beginPath();
+        ctx.moveTo(to.x, to.y);
+        ctx.lineTo(to.x - headlen * Math.cos(angle - Math.PI / 7),
+                   to.y - headlen * Math.sin(angle - Math.PI / 7));
+
+        //path from the side point of the arrow, to the other side point
+        ctx.lineTo(to.x - headlen * Math.cos(angle + Math.PI / 7), 
+                   to.y - headlen * Math.sin(angle + Math.PI / 7));
+
+        //path from the side point back to the tip of the arrow, and then again to the opposite side point
+        ctx.lineTo(to.x, to.y);
+        ctx.lineTo(to.x - headlen * Math.cos(angle - Math.PI / 7),
+                   to.y - headlen * Math.sin(angle - Math.PI / 7));
+
+        //draws the paths created above
+        ctx.strokeStyle = "#cc0000";
+        ctx.lineWidth = arrowThickness;
+        ctx.stroke();
+        ctx.fillStyle = "#cc0000";
+        ctx.fill();
     }
 }

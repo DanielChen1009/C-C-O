@@ -1,5 +1,5 @@
-const Position = require("../position.js");
-const Move = require("../move.js");
+const Position = require("../game/position.js");
+const Move = require("../game/move.js");
 
 module.exports = class Piece {
     constructor(color, r, c, board) {

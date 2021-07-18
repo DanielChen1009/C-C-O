@@ -1,5 +1,5 @@
-const Game = require("./game.js");
-const {WHITE, BLACK} = require("./constants.js");
+const Game = require("../game/game.js");
+const {WHITE, BLACK} = require("../game/constants.js");
 
 module.exports = class Match {
     constructor(host, matchName) {
