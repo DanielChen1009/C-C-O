@@ -224,8 +224,8 @@ class Session {
             this.square(state.selected).children(".piece").first().addClass("movable");
         }
         // Draw last move arrows if necessary.
+        $(".board").children(".arrow").remove();
         if (state.lastMove) {
-            $(".board").children(".arrow").remove();
             this.drawArrow(state.lastMove[0], state.lastMove[1]);
         }
     }
