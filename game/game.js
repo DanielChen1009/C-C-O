@@ -19,8 +19,10 @@ module.exports = class Game {
 
         if (DEBUG) {
             this.board[0][0] = new King(BLACK, 0, 0, this.board);
-            this.board[3][4] = new Queen(WHITE, 3, 4, this.board);
-            this.board[5][5] = new King(WHITE, 5, 5, this.board);
+            this.board[4][4] = new Pawn(BLACK, 4, 4, this.board);
+            this.board[5][5] = new Pawn(WHITE, 5, 5, this.board);
+            this.board[2][4] = new Pawn(BLACK, 2, 4, this.board);
+            this.board[7][7] = new King(WHITE, 7, 7, this.board);
         } else {
             // Set Pawns
             for (let i = 0; i < 8; ++i) {
@@ -100,14 +102,14 @@ module.exports = class Game {
             } else {
                 // This is when the user clicked on something other than the current selected piece.
                 let piece = this.board[r][c];
-                if (piece.color() !== this.turn) return;
+                if (piece.getColor() !== this.turn) return;
                 this.selected = this.board[r][c];
                 this.legalMoves = this.selected.legalMoves();
             }
         } else {
             // This is where no legal moves are highlighted on the board yet.
             let piece = this.board[r][c];
-            if (piece && piece.color() !== this.turn) return;
+            if (piece && piece.getColor() !== this.turn) return;
             this.selected = piece;
 
             this.legalMoves = this.selected ?
@@ -149,7 +151,7 @@ module.exports = class Game {
         for (let i = 0; i < 8; ++i) {
             for (let j = 0; j < 8; ++j) {
                 let piece = this.board[i][j];
-                if (piece && piece.color() === color) yield piece;
+                if (piece && piece.getColor() === color) yield piece;
             }
         }
     }
