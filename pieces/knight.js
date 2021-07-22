@@ -7,21 +7,17 @@ module.exports = class Knight extends Piece {
     code() { return 2; }
 
     legalMoves() {
-        let moves = [];
+        const moves = [];
         const deltas = [
-            [2, 1],
-            [-2, 1],
-            [2, -1],
-            [-2, -1],
-            [1, 2],
-            [-1, 2],
-            [1, -2],
-            [-1, -2]
+            [2, 1], [-2, 1],
+            [2, -1], [-2, -1],
+            [1, 2], [-1, 2],
+            [1, -2], [-1, -2]
         ]
 
-        for (let delta of deltas) {
-            if (this.isValidSquare(delta[0], delta[1])) {
-                moves.push(new Move(this.position.add(delta[0], delta[1]), this));
+        for (const [dR, dC] of deltas) {
+            if (this.isEmptySquare(dR, dC) || this.isEnemy(this.getPiece(dR, dC))) {
+                moves.push(this.createMove(dR, dC));
             }
         }
 

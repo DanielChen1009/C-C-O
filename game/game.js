@@ -12,7 +12,7 @@ module.exports = class Game {
         this.isChecked = false;
         this.turn = WHITE;
         this.selected = null;
-        this.board = Array.from(Array(8), () => new Array(8));
+        this.board = new Array(8).fill(null).map(() => new Array(8).fill(null));
         this.legalMoves = null;
         this.boardUpdated = true;
         this.lastMove = null;
@@ -24,11 +24,6 @@ module.exports = class Game {
             this.board[2][4] = new Pawn(BLACK, 2, 4, this.board);
             this.board[7][7] = new King(WHITE, 7, 7, this.board);
         } else {
-            // Set Pawns
-            for (let i = 0; i < 8; ++i) {
-                this.board[1][i] = new Pawn(BLACK, 1, i, this.board);
-                this.board[6][i] = new Pawn(WHITE, 6, i, this.board);
-            }
             // Set white pieces.
             this.renderSide(WHITE, 7);
 
@@ -38,12 +33,13 @@ module.exports = class Game {
     }
 
     data() {
+        const noMoves = this.hasNoMoves();
         return {
             board: this.boardUpdated ? this.board.map(row => row.map(p => p ? p.data() : null)) : undefined,
             selected: this.selected ? this.selected.position.data() : undefined,
             legalMoves: this.legalMoves ? this.legalMoves.map(m => m.data()) : undefined,
-            checkmate: this.hasNoMoves() && this.isChecked,
-            stalemate: this.hasNoMoves() && !this.isChecked,
+            checkmate: noMoves && this.isChecked,
+            stalemate: noMoves && !this.isChecked,
             lastMove: this.lastMove ? [this.lastMove.fromPos.data(), this.lastMove.toPos.data()] : undefined,
         }
     }
@@ -57,6 +53,9 @@ module.exports = class Game {
         this.board[pos][5] = new Bishop(color, pos, 5, this.board);
         this.board[pos][6] = new Knight(color, pos, 6, this.board);
         this.board[pos][7] = new Rook(color, pos, 7, this.board);
+        for (let i = 0; i < 8; ++i) {
+            this.board[pos - color][i] = new Pawn(color, pos - color, i, this.board);
+        }
     }
 
     // Checks whether the piece can move to r,c. If so, apply the move and return true, else false.
@@ -66,12 +65,13 @@ module.exports = class Game {
                 if (!this.selected.moved) this.selected.moved = true;
                 move.apply();
                 this.lastMove = move;
-                this.isChecked = false;
                 this.legalMoves = null;
                 this.selected = null;
+                // Give pieces a chance to execute some piece-specific logic before
+                // passing the turn.
+                for (const piece of this.pieces()) piece.onPassTurn(this.turn);
                 this.turn = this.opposite(this.turn);
                 this.isChecked = this.checkForCheck(this.turn);
-                this.boardUpdated = true;
                 return true;
             }
         }
@@ -125,7 +125,7 @@ module.exports = class Game {
     hasNoMoves() {
         for (let piece of this.pieces(this.turn)) {
             let moves = this.trimMoves(piece);
-            if(moves.length !== 0) return false;
+            if (moves.length > 0) return false;
         }
         return true;
     }
@@ -151,7 +151,7 @@ module.exports = class Game {
         for (let i = 0; i < 8; ++i) {
             for (let j = 0; j < 8; ++j) {
                 let piece = this.board[i][j];
-                if (piece && piece.getColor() === color) yield piece;
+                if (piece && (!color || piece.getColor() === color)) yield piece;
             }
         }
     }

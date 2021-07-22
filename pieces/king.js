@@ -6,13 +6,14 @@ module.exports = class King extends Piece {
     code() { return 6; }
 
     legalMoves() {
-        let moves = [];
-        const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1],
+        const moves = [];
+        const dirs = [
+            [1, 0], [-1, 0], [0, 1], [0, -1],
             [1, 1], [1, -1], [-1, 1], [-1, -1]
         ];
-        for (let dir of dirs) {
-            if (this.isValidSquare(dir[0], dir[1])) {
-                moves.push(this.getMove(dir[0], dir[1]));
+        for (const [dR, dC] of dirs) {
+            if (this.isEmptySquare(dR, dC) || this.isEnemy(this.getPiece(dR, dC))) {
+                moves.push(this.createMove(dR, dC));
             }
         }
 

@@ -20,9 +20,7 @@ module.exports = class Match {
         let gameData = this.game.data();
         gameData.matchName = this.name;
         gameData.hostName = this.host.name;
-        if (this.guest) {
-            gameData.guestName = this.guest.name;
-        }
+        if (this.guest) gameData.guestName = this.guest.name;
         gameData.yourColor = this.getColor(player);
         return gameData;
     }
@@ -30,6 +28,8 @@ module.exports = class Match {
     // Emit the match state to the players.
     emit() {
         this.host.socket.emit("match state", this.data(this.host));
-        if (this.guest && this.guest.name != this.host.name) this.guest.socket.emit("match state", this.data(this.guest));
+        if (this.guest && this.guest.name != this.host.name) {
+            this.guest.socket.emit("match state", this.data(this.guest));
+        }
     }
 }

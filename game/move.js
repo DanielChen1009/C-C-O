@@ -7,7 +7,7 @@ module.exports = class Move {
         this.toPos = pos;
         this.piece = piece;
         this.fromPos = this.piece.position;
-        this.capturedPieces = [];
+        this.capturedPieces = new Map();
         this.board = this.piece.pieceBoard;
     }
 
@@ -16,22 +16,29 @@ module.exports = class Move {
     }
 
     apply() {
-        this.board[this.piece.position.row][this.piece.position.col] = null;
+        this.capturedPieces.set(this.toPos, this.board[this.toPos.row][this.toPos.col]);
+        for (const [pos, piece] of this.capturedPieces) {
+            this.board[pos.row][pos.col] = null;
+        }
         this.board[this.toPos.row][this.toPos.col] = this.piece;
-        this.fromPos = new Position(this.piece.position.row, this.piece.position.col);
-        this.piece.position = this.toPos;
+        this.board[this.piece.position.row][this.piece.position.col] = null;
+        this.fromPos = this.piece.position.copy();
+        this.piece.position = this.toPos.copy();
+        this.piece.onApplyMove(this);
     }
 
     undo() {
-        this.board[this.toPos.row][this.toPos.col] = this.capturedPieces[0];
-        this.piece.position = this.fromPos;
+        for (const [pos, piece] of this.capturedPieces) {
+            this.board[pos.row][pos.col] = piece;
+        }
+        this.capturedPieces.delete(this.toPos);
+        this.piece.position = this.fromPos.copy();
         this.board[this.piece.position.row][this.piece.position.col] = this.piece;
+        this.piece.onUndoMove(this);
     }
 
     capturesKing() {
         let piece = this.board[this.toPos.row][this.toPos.col];
-        return piece && (piece.name() === "king" && piece.getColor() !== this.piece.getColor()
-
-        );
+        return piece && (piece.name() === "king" && piece.getColor() !== this.piece.getColor());
     }
 }

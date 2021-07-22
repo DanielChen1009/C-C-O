@@ -15,4 +15,8 @@ module.exports = class Position {
     data() {
         return this.row * 8 + this.col;
     }
+
+    copy() {
+        return new Position(this.row, this.col);
+    }
 }

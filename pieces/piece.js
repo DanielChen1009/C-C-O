@@ -5,7 +5,7 @@ const assert = require("assert");
 module.exports = class Piece {
     constructor(color, r, c, board) {
         assert(r >= 0 && r <= 7 && c >= 0 && c <= 7, "Piece placed out of bounds");
-        this.mycolor = color;
+        this.color = color;
         // r is for row, c is column.
         this.position = new Position(r, c);
         this.selected = false;
@@ -18,16 +18,18 @@ module.exports = class Piece {
         return this.code() + "," + this.getColor();
     }
 
-    isValidSquare(dR, dC) {
+    // Returns whether a square dR rows and dC columns away is an empty square.
+    isEmptySquare(dR, dC) {
         let r = this.position.row + dR;
         let c = this.position.col + dC;
 
         if (r > 7 || r < 0) return false;
         if (c > 7 || c < 0) return false;
-        if (!this.pieceBoard[r][c]) return true;
-        return this.pieceBoard[r][c].mycolor !== this.mycolor;
+        return !this.pieceBoard[r][c];
     }
 
+    // Returns the piece at a position dR rows and dC columns away, or null if no piece
+    // or out of bounds.
     getPiece(dR, dC) {
         let r = this.position.row + dR;
         let c = this.position.col + dC;
@@ -39,14 +41,16 @@ module.exports = class Piece {
         return piece;
     }
 
+    // Returns whether the given piece is an enemy piece.
     isEnemy(piece) {
         if (!piece) return false;
         assert(piece instanceof Piece, "isEnemy called on non-Piece");
         return piece.getColor() !== this.getColor();
     }
 
-    getMove(dR, dC) {
-        assert(this instanceof Piece, "This is not a piece");
+    // Create a move representing moving dR rows and dC columns away from current
+    // position.
+    createMove(dR, dC) {
         return new Move(this.position.add(dR, dC), this);
     }
 
@@ -56,27 +60,23 @@ module.exports = class Piece {
             for (let i = 1; i < 8; ++i) {
                 const dR = i * dir[0];
                 const dC = i * dir[1];
-                if (this.isValidSquare(dR, dC)) {
-                    moves.push(this.getMove(dR, dC));
-                    if (this.isEnemy(this.getPiece(dR, dC))) {
-                        break;
-                    }
+                const hitEnemy = this.isEnemy(this.getPiece(dR, dC));
+                if (this.isEmptySquare(dR, dC) || hitEnemy) {
+                    moves.push(this.createMove(dR, dC));
+                    if (hitEnemy) break;
                 } else break;
             }
         }
         return moves;
     }
 
-    checkCheckers(r, c) {
+    getCheckersMoves(r, c) {
+        return [];
         for (let i = 0; i < 8; i++) {
             for (let j = 0; j < 8; j++) {
                 this.visited[i][j] = false;
             }
         }
-        return this.checkCheckersMoves(r, c);
-    }
-
-    checkCheckersMoves(r, c) {
         const dirs = [[1, 1], [-1, 1], [1, -1], [-1, -1]];
         let moves = [];
         for (let i = 0; i < 4; i++) {
@@ -84,14 +84,14 @@ module.exports = class Piece {
             let nc = c + dirs[i][1];
             if (nr < 0 || nr >= 8 || nc < 0 || nc >= 8) continue;
             if (!this.pieceBoard[nr][nc]) continue;
-            if (this.pieceBoard[nr][nc].getColor() === this.mycolor) continue;
+            if (this.pieceBoard[nr][nc].getColor() === this.getColor()) continue;
             nr = nr + dirs[i][0];
             nc = nc + dirs[i][1];
             if (nr < 0 || nr >= 8 || nc < 0 || nc >= 8) continue;
             if (this.visited[nr][nc]) continue;
             this.visited[r][c] = true;
             if (!this.pieceBoard[nr][nc]) {
-                let checkersMoves = this.checkCheckersMoves(nr, nc)
+                let checkersMoves = this.getCheckersMoves(nr, nc)
                 if (checkersMoves.length !== 0) {
                     for (let move of checkersMoves) {
                         moves.push(move);
@@ -106,22 +106,29 @@ module.exports = class Piece {
     }
 
     // An on-wire single number representation of this piece.
-    code() {
-        return null;
-    }
+    code() { assert.fail("Not implemented"); }
 
     // Unique human-readable name for this piece type.
-    name() {
-        return null;
-    }
+    name() { assert.fail("Not implemented"); }
 
     // The color of this piece. Either white or black.
     getColor() {
-        return this.mycolor;
+        return this.color;
+    }
+
+    // The color of the enemy of this piece. Either white or black.
+    getEnemyColor() {
+        return -1 * this.color;
     }
 
     // The current legal moves for this piece.
-    legalMoves() {
-        return null;
-    }
+    legalMoves() { assert.fail("Not implemented"); }
+
+    // Callbacks after a certain move has been applied or undid. Each piece
+    // can have piece-specific logic to have side effects after moves.
+    onApplyMove(move) {}
+    onUndoMove(move) {}
+
+    // Callback after a turn (a color value, WHITE or BLACK) is passed.
+    onPassTurn(turn) {}
 }
