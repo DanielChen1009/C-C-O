@@ -5,6 +5,7 @@ const Match = require('./game/match.js');
 const Player = require('./game/player.js');
 const {uniqueNamesGenerator, NumberDictionary, adjectives, names} = require('unique-names-generator');
 const {WHITE, BLACK} = require("./game/constants.js");
+const assert = require("assert");
 
 const CORS_CONFIG = {
     credentials: true,
@@ -60,7 +61,7 @@ function generateName() {
     return name;
 }
 
-// Make the given player leave all its matches.
+// Make the given player leave all his/her matches.
 function leaveMatches(player) {
     if (player.hostedMatch) {
         const guest = player.hostedMatch.guest;
@@ -71,7 +72,7 @@ function leaveMatches(player) {
         }
         player.socket.emit("message", "Left hosted match: " + player.hostedMatch.name);
         matches.delete(player.hostedMatch.name);
-        console.log("Deleted hosted match: " + player.hostedMatch.name);
+        console.log("Player " + player.name + " left hosted match: " + player.hostedMatch.name);
         player.hostedMatch = null;
     }
     if (player.joinedMatch) {
@@ -81,12 +82,12 @@ function leaveMatches(player) {
         host.personalMatch.emit();
         player.socket.emit("message", "Left match: " + player.joinedMatch.name);
         matches.delete(player.joinedMatch.name);
-        console.log("Deleted joined match: " + player.joinedMatch.name);
+        console.log("Player " + player.name + " left joined match: " + player.joinedMatch.name);
         player.joinedMatch = null;
     }
 }
 
-// All event handlers.
+// All socket.io event handlers.
 io.on("connection", (socket) => {
     const playerName = generateName();
     const newPlayer = new Player(playerName, socket, new Match(null, null));
@@ -103,6 +104,7 @@ io.on("connection", (socket) => {
             return;
         }
         const player = players.get(socket.id);
+        console.log("Player " + player.name + " updated name to " + newName);
         nameMap.delete(player.name);
         player.name = newName;
         nameMap.set(player.name, player);
@@ -114,28 +116,33 @@ io.on("connection", (socket) => {
         const player = players.get(socket.id);
         let match = null;
         if (!input.matchName) {
+            // If match name is null, then the move is for the personal match. But
+            // there can be race conditions with hosted/joined games so we check them.
             if (player.joinedMatch) match = player.joinedMatch;
-            else if (player.hostedMatch) match = player.hostedMatch;
+            else if (player.hostedMatch && player.hostedMatch.guest) match = player.hostedMatch;
             else {
                 player.personalMatch.game.handleInput(input.row, input.col, player.personalMatch.game.turn);
                 player.personalMatch.emit();
                 return;
             }
         }
-        if (!match) match = matches.get(input.matchName)
-        if (!match) {
-            socket.emit("error", "Match does not exist. Opponent disconnected.");
-            socket.emit("set match", null);
-            player.personalMatch.emit();
-            return;
+        else {
+            match = matches.get(input.matchName);
+            if (!match) {
+                socket.emit("error", "Match does not exist. Opponent disconnected.");
+                player.personalMatch.emit();
+                return;
+            }
         }
         if (!match.guest) {
-            socket.emit("error", "You are hosting a match. Still waiting for an opponent!");
+            socket.emit("error", "Guest disconnected from the match. Exiting match.");
+            player.personalMatch.emit();
             return;
         }
         const color = match.getColor(player);
         if (!color) {
             socket.emit("error", "You are not in the match " + match.name + "! Something went wrong. Please refresh.");
+            console.log("Something went wrong! Player " + player.name + " sent input for unrelated match " + match.name);
             return;
         }
         match.game.handleInput(input.row, input.col, color);
@@ -165,10 +172,7 @@ io.on("connection", (socket) => {
         const newMatch = new Match(player, matchName);
         matches.set(matchName, newMatch);
         player.hostedMatch = newMatch;
-        player.joinedMatch = null;
-        socket.emit("set match", matchName);
         socket.emit("message", "Created new match: " + matchName);
-        newMatch.emit();
         emitMatches();
     });
 
@@ -229,6 +233,7 @@ io.on("connection", (socket) => {
 
         match.host.socket.emit("guest joined", player.name);
         match.host.socket.emit("message", "Your color is " + (match.hostColor === 1 ? "WHITE" : "BLACK"));
+        console.log("Player " + player.name + " joined match " + match.name);
         emitMatches();
     });
 
