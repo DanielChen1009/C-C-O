@@ -10,6 +10,7 @@ class Session {
 
         // Create the DOM structure for the game board.
         this.boardOrientation = 1;
+        this.progressbar = $("<div>").progressbar({value: false});
         this.buildBoard();
     }
 
@@ -88,6 +89,7 @@ class Session {
 
     // Renders the match list in the lobby based on server-sent data.
     renderMatchList(matches) {
+        this.progressbar.hide();
         let table = $("#matchlist");
         table.empty();
 
@@ -278,7 +280,7 @@ class Session {
             content.append(row);
         }
 
-        $("#" + this.config.boardContainerId).append(content);
+        $("#" + this.config.boardContainerId).append(this.progressbar).append(content);
     }
 
     // Returns the x, y position of the given element's center.
