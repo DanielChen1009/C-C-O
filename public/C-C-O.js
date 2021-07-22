@@ -228,7 +228,9 @@ class Session {
         // Draw last move arrows if necessary.
         $(".board").children(".arrow").remove();
         if (state.lastMove) {
-            this.drawArrow(state.lastMove[0], state.lastMove[1]);
+            for (let i = 0; i < state.lastMove.length - 1; ++i) {
+                this.drawArrow(state.lastMove[i], state.lastMove[i + 1]);
+            }
         }
     }
 

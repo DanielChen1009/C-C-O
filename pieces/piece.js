@@ -11,9 +11,9 @@ module.exports = class Piece {
         this.selected = false;
         this.pieceBoard = board;
         this.moved = false;
-        this.visited = Array.from(Array(8), () => new Array(8));
     }
 
+    // Returns the socket.io wire-format data for this piece.
     data() {
         return this.code() + "," + this.getColor();
     }
@@ -70,35 +70,38 @@ module.exports = class Piece {
         return moves;
     }
 
-    getCheckersMoves(r, c) {
-        return [];
-        for (let i = 0; i < 8; i++) {
-            for (let j = 0; j < 8; j++) {
-                this.visited[i][j] = false;
-            }
-        }
-        const dirs = [[1, 1], [-1, 1], [1, -1], [-1, -1]];
-        let moves = [];
-        for (let i = 0; i < 4; i++) {
-            let nr = r + dirs[i][0];
-            let nc = c + dirs[i][1];
+    // Returns all legal checkers move for this piece at position r, c.
+    // visited should be undefined on the first call.
+    getCheckersMoves(r, c, visited) {
+        const d = this.getColor() == 1 && this.name() == "pawn";
+        const vdir = -1 * this.getColor();
+        const hdirs = [-1, 1];
+        const moves = [];
+        if (!visited) visited = new Map();
+        for (const hdir of hdirs) {
+            let nr = r + vdir;
+            let nc = c + hdir;
             if (nr < 0 || nr >= 8 || nc < 0 || nc >= 8) continue;
-            if (!this.pieceBoard[nr][nc]) continue;
-            if (this.pieceBoard[nr][nc].getColor() === this.getColor()) continue;
-            nr = nr + dirs[i][0];
-            nc = nc + dirs[i][1];
+            const piece = this.pieceBoard[nr][nc];
+            if (!this.isEnemy(piece)) continue;
+            nr += vdir;
+            nc += hdir;
             if (nr < 0 || nr >= 8 || nc < 0 || nc >= 8) continue;
-            if (this.visited[nr][nc]) continue;
-            this.visited[r][c] = true;
+            if (visited.get({nr, nc})) continue;
+            visited.set({r, c}, true);
             if (!this.pieceBoard[nr][nc]) {
-                let checkersMoves = this.getCheckersMoves(nr, nc)
-                if (checkersMoves.length !== 0) {
+                let checkersMoves = this.getCheckersMoves(nr, nc, visited)
+                if (checkersMoves.length > 0) {
                     for (let move of checkersMoves) {
+                        move.capturedPieces.set(piece.position.copy(), piece);
+                        move.checkpoints.push(new Position(nr, nc));
                         moves.push(move);
-                        this.visited[nr][nc] = true;
+                        visited.set({nr, nc}, true);
                     }
                 } else {
-                    moves.push(new Move(new Position(nr, nc), this));
+                    const move = new Move(new Position(nr, nc), this);
+                    move.capturedPieces.set(piece.position.copy(), piece);
+                    moves.push(move);
                 }
             }
         }
@@ -122,7 +125,9 @@ module.exports = class Piece {
     }
 
     // The current legal moves for this piece.
-    legalMoves() { assert.fail("Not implemented"); }
+    legalMoves() {
+        return this.getCheckersMoves(this.position.row, this.position.col);
+    }
 
     // Callbacks after a certain move has been applied or undid. Each piece
     // can have piece-specific logic to have side effects after moves.

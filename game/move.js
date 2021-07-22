@@ -7,12 +7,18 @@ module.exports = class Move {
         this.toPos = pos;
         this.piece = piece;
         this.fromPos = this.piece.position;
-        this.capturedPieces = new Map();
+        this.checkpoints = []; // Positions between fromPos and toPos the piece moves through.
+        this.capturedPieces = new Map(); // (r,c) => Piece
         this.board = this.piece.pieceBoard;
     }
 
     data() {
         return this.toPos.data();
+    }
+
+    // Returns the whole sequence of positions including checkpoints.
+    allPos() {
+        return [this.fromPos].concat(this.checkpoints).concat([this.toPos]);
     }
 
     apply() {

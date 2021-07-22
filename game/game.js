@@ -40,7 +40,7 @@ module.exports = class Game {
             legalMoves: this.legalMoves ? this.legalMoves.map(m => m.data()) : undefined,
             checkmate: noMoves && this.isChecked,
             stalemate: noMoves && !this.isChecked,
-            lastMove: this.lastMove ? [this.lastMove.fromPos.data(), this.lastMove.toPos.data()] : undefined,
+            lastMove: this.lastMove ? this.lastMove.allPos().map(pos => pos.data()) : undefined,
         }
     }
 

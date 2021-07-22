@@ -13,7 +13,9 @@ module.exports = class Pawn extends Piece {
     code() { return 1; }
 
     legalMoves() {
-        const moves = [];
+        const moves = super.legalMoves();
+        if (moves.length > 0) return moves;
+
         // Vertical distance to travel.
         const vdists = this.moved ? [1] : [1, 2];
         // Vertical direction (up or down).
