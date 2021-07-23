@@ -4,7 +4,7 @@ const cors = require('cors');
 const Match = require('./game/match.js');
 const Player = require('./game/player.js');
 const {uniqueNamesGenerator, NumberDictionary, adjectives, names} = require('unique-names-generator');
-const {WHITE, BLACK} = require("./game/constants.js");
+const {WHITE, BLACK, DEBUG} = require("./game/constants.js");
 const assert = require("assert");
 
 const CORS_CONFIG = {
@@ -113,6 +113,7 @@ io.on("connection", (socket) => {
     });
 
     socket.on("input", (input) => {
+        if (DEBUG) console.log("Received input: " + JSON.stringify(input));
         const player = players.get(socket.id);
         let match = null;
         if (!input.matchName) {
@@ -121,7 +122,8 @@ io.on("connection", (socket) => {
             if (player.joinedMatch) match = player.joinedMatch;
             else if (player.hostedMatch && player.hostedMatch.guest) match = player.hostedMatch;
             else {
-                player.personalMatch.game.handleInput(input.row, input.col, player.personalMatch.game.turn);
+                player.personalMatch.game.handleInput(
+                    input.row, input.col, player.personalMatch.game.turn, input.choice);
                 player.personalMatch.emit();
                 return;
             }
@@ -145,7 +147,7 @@ io.on("connection", (socket) => {
             console.log("Something went wrong! Player " + player.name + " sent input for unrelated match " + match.name);
             return;
         }
-        match.game.handleInput(input.row, input.col, color);
+        match.game.handleInput(input.row, input.col, color, input.choice);
         match.emit();
     });
 

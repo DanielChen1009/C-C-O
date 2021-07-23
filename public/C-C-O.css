@@ -43,6 +43,14 @@
     z-index: 999;
 }
 
+.promotion .ui-dialog-titlebar {
+    display: none;
+}
+
+.promotion .ui-dialog-content {
+    padding: 0;
+}
+
 .piece {
     background-image: url("chesspieces.png");
     background-repeat: no-repeat;

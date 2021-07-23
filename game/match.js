@@ -16,20 +16,22 @@ module.exports = class Match {
     }
 
     // Returns data of this match, from the perspective of the given player.
-    data(player) {
-        let gameData = this.game.data();
+    data(colors) {
+        let gameData = this.game.data(colors);
         gameData.matchName = this.name;
         gameData.hostName = this.host.name;
         if (this.guest) gameData.guestName = this.guest.name;
-        gameData.yourColor = this.getColor(player);
+        gameData.yourColor = colors[0];
         return gameData;
     }
 
     // Emit the match state to the players.
     emit() {
-        this.host.socket.emit("match state", this.data(this.host));
-        if (this.guest && this.guest.name != this.host.name) {
-            this.guest.socket.emit("match state", this.data(this.guest));
+        if (this.guest.name === this.host.name) {
+            this.host.socket.emit("match state", this.data([WHITE, BLACK]));
+        } else {
+            this.host.socket.emit("match state", this.data([this.getColor(this.host)]));
+            if (this.guest) this.guest.socket.emit("match state", this.data([this.getColor(this.guest)]));
         }
     }
 }

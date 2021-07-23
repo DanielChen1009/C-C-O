@@ -6,6 +6,7 @@ const Queen = require('../pieces/queen.js');
 const King = require('../pieces/king.js');
 const Piece = require('../pieces/piece.js');
 const {WHITE, BLACK, DEBUG} = require("../game/constants.js");
+const assert = require("assert");
 
 module.exports = class Game {
     constructor() {
@@ -13,9 +14,10 @@ module.exports = class Game {
         this.turn = WHITE;
         this.selected = null;
         this.board = new Array(8).fill(null).map(() => new Array(8).fill(null));
-        this.legalMoves = null;
+        this.legalMoves = null; // Either Array of Moves or null.
         this.boardUpdated = true;
-        this.lastMove = null;
+        this.lastMove = null;  // Either a Move or null;
+        this.promotion = null; // Either a Piece to be promoted or null.
 
         if (DEBUG) {
             this.board[0][0] = new King(BLACK, 0, 0, this.board);
@@ -23,28 +25,46 @@ module.exports = class Game {
             this.board[5][5] = new Pawn(WHITE, 5, 5, this.board);
             this.board[2][4] = new Pawn(BLACK, 2, 4, this.board);
             this.board[7][7] = new King(WHITE, 7, 7, this.board);
+            this.board[1][4] = new Pawn(WHITE, 1, 4, this.board);
         } else {
             // Set white pieces.
-            this.renderSide(WHITE, 7);
+            this.placePieces(WHITE, 7);
 
             // Set black pieces.
-            this.renderSide(BLACK, 0);
+            this.placePieces(BLACK, 0);
         }
     }
 
-    data() {
+    // Returns the data that will be transmitted to the client for rendering. This should
+    // be as small as possible while conveying the necessary information. Most fields should be
+    // undefined whenever possible since those will not be sent over the wire.
+    //
+    // colors is an Array of color ints corresponding to which side's data to send. For personal
+    // matches, both sides can see all info and [WHITE, BLACK] will be used. For online matches
+    // the respective sides cannot see the other side's full information like selected pieces
+    // and highlighted legal moves.
+    data(colors) {
+        for (const color of colors) assert(color === WHITE || color === BLACK, "Invalid color: " + color);
+        if (DEBUG) console.log("data(" + colors + ")");
         const noMoves = this.hasNoMoves();
         return {
             board: this.boardUpdated ? this.board.map(row => row.map(p => p ? p.data() : null)) : undefined,
-            selected: this.selected ? this.selected.position.data() : undefined,
-            legalMoves: this.legalMoves ? this.legalMoves.map(m => m.data()) : undefined,
+            selected: (this.selected && colors.includes(this.selected.getColor())) ? this.selected.position.data() : undefined,
+            legalMoves: (colors.includes(this.turn) && this.legalMoves) ? this.legalMoves.map(m => m.data()) : undefined,
             checkmate: noMoves && this.isChecked,
             stalemate: noMoves && !this.isChecked,
             lastMove: this.lastMove ? this.lastMove.allPos().map(pos => pos.data()) : undefined,
+            promotion: (this.promotion && colors.includes(this.promotion.getColor())) ? this.promotion.position.data() : undefined,
         }
     }
 
-    renderSide(color, pos) {
+    // Returns the word corresponding to a color int.
+    getColorName(color) {
+        return parseInt(color) === 1 ? "white" : "black";
+    }
+
+    // Places all pieces in initial position for the given color.
+    placePieces(color, pos) {
         this.board[pos][0] = new Rook(color, pos, 0, this.board);
         this.board[pos][1] = new Knight(color, pos, 1, this.board);
         this.board[pos][2] = new Bishop(color, pos, 2, this.board);
@@ -70,7 +90,8 @@ module.exports = class Game {
                 // Give pieces a chance to execute some piece-specific logic before
                 // passing the turn.
                 for (const piece of this.pieces()) piece.onPassTurn(this.turn);
-                this.turn = this.opposite(this.turn);
+                this.promotion = this.checkForPromotion(this.turn);
+                this.turn = this.promotion ? this.turn : this.opposite(this.turn);
                 this.isChecked = this.checkForCheck(this.turn);
                 return true;
             }
@@ -90,10 +111,52 @@ module.exports = class Game {
         }
     }
 
-    handleInput(r, c, color) {
+    // The main user input handling method. Every time the user clicks anywhere, this is called.
+    handleInput(r, c, color, choice) {
+        assert(color === WHITE || color === BLACK, "Invalid color");     
+        // If it's not the current player's turn, we don't do anything.
+        if (this.turn !== color) {
+            return;
+        }
+        const colorName = this.getColorName(color);
+        if (DEBUG) console.log("handleInput(" + r + ", " + c + ", " + colorName + ", " + choice +
+            ") promotion: " + (this.promotion != null) + ", turn: " + this.getColorName(this.turn));
+
+        // Check to see if we need to finish promoting a piece.
+        if (this.promotion) {
+            // If the move does not contain a promotion choice, return and keep waiting.
+            if (!choice) return;
+            if (DEBUG) console.log("handleInput(" + colorName + "): handling promotion to " + choice);
+            assert(r === this.promotion.position.row && c === this.promotion.position.col, "Invalid promotion");
+            const pos = this.promotion.position;
+            color = this.promotion.getColor();
+            let promotedPiece;
+            switch (choice) {
+                case "queen":
+                    promotedPiece = new Queen(color, pos.row, pos.col, this.board);
+                    break;
+                case "rook":
+                    promotedPiece = new Rook(color, pos.row, pos.col, this.board);
+                    break;
+                case "bishop":
+                    promotedPiece = new Bishop(color, pos.row, pos.col, this.board);
+                    break;
+                case "knight":
+                    promotedPiece = new Knight(color, pos.row, pos.col, this.board);
+                    break;
+                default:
+                    assert.fail("Invalid promotion piece name: " + choice);
+            }
+            this.board[pos.row][pos.col] = promotedPiece;
+            this.boardUpdated = true;
+            this.promotion = null;
+            this.turn = this.opposite(this.turn);
+            return;
+        }
+
         // This case is where legal moves are already highlighted on the board.
-        if (this.turn !== color) return;
         if (this.legalMoves) {
+            if (DEBUG) console.log("handleInput(" + colorName + "): handling move selection");
             this.boardUpdated = this.movePiece(r, c);
             // This is when the user clicked on nothing.
             if (!this.board[r][c]) {
@@ -107,13 +170,13 @@ module.exports = class Game {
                 this.legalMoves = this.selected.legalMoves();
             }
         } else {
+            if (DEBUG) console.log("handleInput(" + colorName + "): handling legal move display");
             // This is where no legal moves are highlighted on the board yet.
             let piece = this.board[r][c];
             if (piece && piece.getColor() !== this.turn) return;
             this.selected = piece;
 
-            this.legalMoves = this.selected ?
-                this.selected.legalMoves() : null;
+            this.legalMoves = this.selected ? this.selected.legalMoves() : null;
             this.boardUpdated = false;
         }
 
@@ -122,6 +185,7 @@ module.exports = class Game {
         }
     }
 
+    // Returns if the current player has no more legal moves.
     hasNoMoves() {
         for (let piece of this.pieces(this.turn)) {
             let moves = this.trimMoves(piece);
@@ -130,6 +194,8 @@ module.exports = class Game {
         return true;
     }
 
+    // Trims the given piece's legal moves to remove moves that would cause the
+    // own king to be in check.
     trimMoves(piece) {
         let moves = piece.legalMoves();
         for (let i = moves.length - 1; i >= 0; i--) {
@@ -143,10 +209,12 @@ module.exports = class Game {
         return moves;
     }
 
+    // Returns the opposite color to the given color int.
     opposite(color) {
         return color === WHITE ? BLACK : WHITE;
     }
 
+    // A generator that runs over all pieces of the given color.
     * pieces(color) {
         for (let i = 0; i < 8; ++i) {
             for (let j = 0; j < 8; ++j) {
@@ -165,5 +233,14 @@ module.exports = class Game {
             }
         }
         return false;
+    }
+
+    // Checks whether a piece can promote. If so, return the piece, otherwise return null.
+    checkForPromotion(color) {
+        for (let piece of this.pieces(color)) {
+            if (!piece || !(piece instanceof Pawn)) continue;
+            if (piece.position.row === (color === WHITE ? 0 : 7)) return piece;
+        }
+        return null;
     }
 }

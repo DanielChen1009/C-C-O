@@ -8,8 +8,10 @@ class Session {
         this.socket = io(this.config.backend);
         this.socket.on("connect", () => this.initSocketHandlers());
 
-        // Create the DOM structure for the game board.
+        // Create the DOM structure for the game board and other supporting widgets.
         this.boardOrientation = 1;
+        this.promotionDialog = $("<div>");
+        this.showingPromotionDialog = false;
         this.progressbar = $("<div>").progressbar({value: false});
         this.buildBoard();
     }
@@ -59,6 +61,11 @@ class Session {
         $("#playerinfo").on("click", "#updatename", () => {
             this.socket.emit("update name", $("#playername").val());
         });
+    }
+
+    // Returns the word corresponding to a color int.
+    getColorName(color) {
+        return parseInt(color) === 1 ? "white" : "black";
     }
 
     // Returns the DOM element for the square at position squareID (0 - 63).
@@ -163,6 +170,16 @@ class Session {
         }
     }
 
+    // Returns the CSS width and height values that pieces should use.
+    getSquareSize() {
+        return this.config.boardSize / 8;
+    }
+
+    // Returns the CSS background-size value that pieces should use.
+    getBackgroundSize() {
+        return (this.config.boardSize * 0.75) + "px " + (this.config.boardSize * 0.25) + "px";
+    }
+
     // Renders pieces and other misc state onto the board.
     renderMatchState(state) {
         if (state.matchName !== undefined) this.sessionMatchName = state.matchName;
@@ -204,10 +221,9 @@ class Session {
                     // assign the appropriate CSS classes.
                     const pieceData = pieceCode.split(",");
                     piece.addClass("piece");
-                    piece.addClass(this.getPieceName(pieceData[0]) + (pieceData[1] === "1" ? "white" : "black"));
+                    piece.addClass(this.getPieceName(pieceData[0]) + this.getColorName(pieceData[1]));
                     // Scale the sprite sheet according to our board size.
-                    piece.css("background-size", (this.config.boardSize * 0.75) + "px " + 
-                                                  (this.config.boardSize * 0.25) + "px");
+                    piece.css("background-size", this.getBackgroundSize());
                 }
             }
         }
@@ -231,6 +247,12 @@ class Session {
             for (let i = 0; i < state.lastMove.length - 1; ++i) {
                 this.drawArrow(state.lastMove[i], state.lastMove[i + 1]);
             }
+        }
+        if (state.promotion !== undefined) {
+            this.showPromotionDialog(state.promotion, state.yourColor);
+        } else if (this.showingPromotionDialog) {
+            this.promotionDialog.dialog("close");
+            this.showingPromotionDialog = false;
         }
     }
 
@@ -337,5 +359,33 @@ class Session {
         ctx.stroke();
         ctx.fillStyle = "#cc0000";
         ctx.fill();
+    }
+
+    // Shows the promotion dialog that allows user to pick a piece to promote to.
+    showPromotionDialog(squareID, color) {
+        this.promotionDialog.empty();
+        const pieceNames = ["queen", "rook", "bishop", "knight"];
+        const rc = this.toRC(squareID);
+        for (const pieceName of pieceNames) {
+            const piece = $("<div>").addClass("piece " + pieceName + this.getColorName(color));
+            piece.on("click", () => {
+                this.socket.emit('input', {row: rc.r, col: rc.c, choice: pieceName, matchName: this.sessionMatchName});
+                this.promotionDialog.dialog("close");
+                this.showingPromotionDialog = false;
+            });
+            piece.width(this.getSquareSize());
+            piece.height(this.getSquareSize());
+            piece.css("background-size", this.getBackgroundSize());
+            piece.css("position", "static");
+            piece.css("display", "inline-block");
+            this.promotionDialog.append(piece);
+        }
+        this.promotionDialog.dialog({
+            dialogClass: "promotion",
+            height: this.getSquareSize() * 1.3,
+            width: this.getSquareSize() * 4.2,
+            position: { my: "center", at: "center", of: this.square(squareID) },
+        });
+        this.showingPromotionDialog = true;
     }
 }
