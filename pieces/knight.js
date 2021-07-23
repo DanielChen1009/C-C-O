@@ -8,7 +8,6 @@ module.exports = class Knight extends Piece {
 
     legalMoves() {
         const moves = super.legalMoves();
-        if (moves.length > 0) return moves;
 
         const deltas = [
             [2, 1], [-2, 1],

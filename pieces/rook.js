@@ -7,7 +7,6 @@ module.exports = class Rook extends Piece {
 
     legalMoves() {
         const moves = super.legalMoves();
-        if (moves.length > 0) return moves;
 
         const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
         return this.getStraightMoves(dirs);

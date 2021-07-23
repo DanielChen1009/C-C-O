@@ -14,7 +14,6 @@ module.exports = class Pawn extends Piece {
 
     legalMoves() {
         const moves = super.legalMoves();
-        if (moves.length > 0) return moves;
 
         // Vertical distance to travel.
         const vdists = this.moved ? [1] : [1, 2];
