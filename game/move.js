@@ -8,8 +8,10 @@ module.exports = class Move {
         this.piece = piece;
         this.fromPos = this.piece.position;
         this.checkpoints = []; // Positions between fromPos and toPos the piece moves through.
-        this.capturedPieces = new Map(); // (r,c) => Piece
         this.board = this.piece.pieceBoard;
+
+        this.capturedPieces = new Map(); // (r,c) => Piece
+        this.capturedPieces.set(this.toPos, this.board[this.toPos.row][this.toPos.col]);
     }
 
     data() {
@@ -22,7 +24,6 @@ module.exports = class Move {
     }
 
     apply() {
-        this.capturedPieces.set(this.toPos, this.board[this.toPos.row][this.toPos.col]);
         for (const [pos, piece] of this.capturedPieces) {
             this.board[pos.row][pos.col] = null;
         }
@@ -44,7 +45,12 @@ module.exports = class Move {
     }
 
     capturesKing() {
-        let piece = this.board[this.toPos.row][this.toPos.col];
-        return piece && (piece.name() === "king" && piece.getColor() !== this.piece.getColor());
+        // let piece = this.board[this.toPos.row][this.toPos.col];
+        for (const [pos, piece] of this.capturedPieces) {
+            if (piece && (piece.name() === "king" && piece.getColor() !== this.piece.getColor())) {
+                return true;
+            }   
+        }
+        return false;
     }
 }

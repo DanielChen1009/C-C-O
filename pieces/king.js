@@ -6,7 +6,8 @@ module.exports = class King extends Piece {
     code() { return 6; }
 
     legalMoves() {
-        const moves = [];
+        const moves = super.legalMoves();
+        if (moves.length > 0) return moves;
         const dirs = [
             [1, 0], [-1, 0], [0, 1], [0, -1],
             [1, 1], [1, -1], [-1, 1], [-1, -1]
