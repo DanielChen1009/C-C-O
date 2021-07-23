@@ -7,6 +7,7 @@ class Session {
         this.playerName = null;
         this.socket = io(this.config.backend);
         this.socket.on("connect", () => this.initSocketHandlers());
+        this.socketInitialized = false;
 
         // Create the DOM structure for the game board and other supporting widgets.
         this.boardOrientation = 1;
@@ -18,6 +19,8 @@ class Session {
 
     // Sets up all socket.io event handlers.
     initSocketHandlers() {
+        if (this.socketInitialized) return;
+
         this.socket.on("set match", (matchName) => {
             this.sessionMatchName = matchName;
         });
@@ -53,6 +56,8 @@ class Session {
         // Show a nice welcome message.
         this.showEvent("Welcome to C-C-O! Play against yourself or create/join matches against others above.");
         this.initButtonHandlers();
+
+        this.socketInitialized = true;
     }
 
     // Sets up all button events.
