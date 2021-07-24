@@ -3,15 +3,18 @@ const assert = require("assert");
 
 module.exports = class Move {
     constructor(pos, piece) {
-        assert(pos instanceof Position, "Move ctor called with a non-Position");
+        assert(pos instanceof Position,
+            "Move ctor called with a non-Position");
         this.toPos = pos;
         this.piece = piece;
         this.fromPos = this.piece.position;
-        this.checkpoints = []; // Positions between fromPos and toPos the piece moves through.
+        // Positions between fromPos and toPos the piece moves through.
+        this.checkpoints = []; 
         this.board = this.piece.pieceBoard;
 
         this.capturedPieces = new Map(); // (r,c) => Piece
-        this.capturedPieces.set(this.toPos, this.board[this.toPos.row][this.toPos.col]);
+        this.capturedPieces.set(this.toPos,
+            this.board[this.toPos.row][this.toPos.col]);
     }
 
     data() {
@@ -40,16 +43,18 @@ module.exports = class Move {
         }
         this.capturedPieces.delete(this.toPos);
         this.piece.position = this.fromPos.copy();
-        this.board[this.piece.position.row][this.piece.position.col] = this.piece;
+        this.board[this.piece.position.row][this.piece.position.col] =
+            this.piece;
         this.piece.onUndoMove(this);
     }
 
     capturesKing() {
         // let piece = this.board[this.toPos.row][this.toPos.col];
         for (const [pos, piece] of this.capturedPieces) {
-            if (piece && (piece.name() === "king" && piece.getColor() !== this.piece.getColor())) {
+            if (piece && (piece.name() === "king" && piece .getColor()
+                !== this.piece.getColor())) {
                 return true;
-            }   
+            }
         }
         return false;
     }

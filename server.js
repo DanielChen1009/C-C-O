@@ -3,8 +3,9 @@ const socketio = require('socket.io');
 const cors = require('cors');
 const Match = require('./game/match.js');
 const Player = require('./game/player.js');
-const {uniqueNamesGenerator, NumberDictionary, adjectives, names} = require('unique-names-generator');
-const {WHITE, BLACK, DEBUG} = require("./game/constants.js");
+const { uniqueNamesGenerator, NumberDictionary, adjectives, names } = require(
+    'unique-names-generator');
+const { WHITE, BLACK, DEBUG } = require("./game/constants.js");
 const assert = require("assert");
 
 const CORS_CONFIG = {
@@ -20,9 +21,7 @@ const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, () => {
     console.log("Listening on port " + PORT + "!");
 });
-const io = socketio(server, {
-    cors: CORS_CONFIG
-});
+const io = socketio(server, { cors: CORS_CONFIG });
 
 // SocketID -> Player
 let players = new Map();
@@ -70,9 +69,11 @@ function leaveMatches(player) {
             guest.socket.emit("host disconnected", player.name);
             guest.personalMatch.emit();
         }
-        player.socket.emit("message", "Left hosted match: " + player.hostedMatch.name);
+        player.socket.emit("message", "Left hosted match: " +
+            player.hostedMatch.name);
         matches.delete(player.hostedMatch.name);
-        console.log("Player " + player.name + " left hosted match: " + player.hostedMatch.name);
+        console.log("Player " + player.name + " left hosted match: " +
+            player.hostedMatch.name);
         player.hostedMatch = null;
     }
     if (player.joinedMatch) {
@@ -82,7 +83,8 @@ function leaveMatches(player) {
         host.personalMatch.emit();
         player.socket.emit("message", "Left match: " + player.joinedMatch.name);
         matches.delete(player.joinedMatch.name);
-        console.log("Player " + player.name + " left joined match: " + player.joinedMatch.name);
+        console.log("Player " + player.name + " left joined match: " + player
+            .joinedMatch.name);
         player.joinedMatch = null;
     }
 }
@@ -117,37 +119,43 @@ io.on("connection", (socket) => {
         const player = players.get(socket.id);
         let match = null;
         if (!input.matchName) {
-            // If match name is null, then the move is for the personal match. But
-            // there can be race conditions with hosted/joined games so we check them.
+            // If match name is null, then the move is for the personal match.
+            // But there can be race conditions with hosted/joined games so we
+            // check them.
             if (player.joinedMatch) match = player.joinedMatch;
-            else if (player.hostedMatch && player.hostedMatch.guest) match = player.hostedMatch;
+            else if (player.hostedMatch && player.hostedMatch.guest)
+                match = player.hostedMatch;
             else {
-                player.personalMatch.game.handleInput(
-                    input.row, input.col, player.personalMatch.game.turn, input.choice);
+                player.personalMatch.game.handleInput(input.row, input.col,
+                    player.personalMatch.game.turn, input.choice);
                 player.personalMatch.emit();
                 return;
             }
-        }
-        else {
+        } else {
             match = matches.get(input.matchName);
             if (!match) {
-                socket.emit("error", "Match does not exist. Opponent disconnected.");
+                socket.emit("error",
+                    "Match does not exist. Opponent disconnected.");
                 player.personalMatch.emit();
                 return;
             }
         }
         if (!match.guest) {
-            socket.emit("error", "Guest disconnected from the match. Exiting match.");
+            socket.emit("error",
+                "Guest disconnected from the match. Exiting match.");
             player.personalMatch.emit();
             return;
         }
         const color = match.getColor(player);
         if (!color) {
-            socket.emit("error", "You are not in the match " + match.name + "! Something went wrong. Please refresh.");
-            console.log("Something went wrong! Player " + player.name + " sent input for unrelated match " + match.name);
+            socket.emit("error", "You are not in the match " + match.name +
+                "! Something went wrong. Please refresh.");
+            console.log("Something went wrong! Player " + player.name + 
+                " sent input for unrelated match " + match.name);
             return;
         }
-        match.game.handleInput(input.row, input.col, color, input.choice);
+        match.game.handleInput(input.row, input.col, color,
+            input.choice);
         match.emit();
     });
 
@@ -158,13 +166,16 @@ io.on("connection", (socket) => {
         }
         const player = players.get(socket.id);
         if (!player) return;
-        console.log("Creating new match for player " + player.name + ": " + matchName);
+        console.log("Creating new match for player " + player.name + ": " +
+            matchName);
         if (player.hostedMatch) {
-            socket.emit('error', 'You are already hosting a match: ' + player.hostedMatch.name);
+            socket.emit("error", "You are already hosting a match: " +
+                player.hostedMatch.name);
             return;
         }
         if (player.joinedMatch) {
-            socket.emit('error', 'You are already in a match: ' + player.joinedMatch.name);
+            socket.emit("error", "You are already in a match: " +
+                player.joinedMatch.name);
             return;
         }
         if (matches.has(matchName)) {
@@ -205,7 +216,8 @@ io.on("connection", (socket) => {
             if (matchName === player.hostedMatch.name) {
                 socket.emit("error", "Cannot join a match you hosted");
             } else {
-                socket.emit("error", "Cannot join another match while you are hosting one.");
+                socket.emit("error",
+                    "Cannot join another match while you are hosting one.");
             }
             return;
         }
@@ -213,28 +225,34 @@ io.on("connection", (socket) => {
             if (matchName === player.joinedMatch.name) {
                 socket.emit("error", "You already joined this match");
             } else {
-                socket.emit("error", "Cannot join a match while you joined another one.");
+                socket.emit("error",
+                    "Cannot join a match while you joined another one.");
             }
             return;
         }
         const match = matches.get(matchName);
         if (!match) {
-            socket.emit("error", "Match does not exist: " + matchName);
+            socket.emit("error", "Match does not exist: " +
+                matchName);
             emitMatches();
             return;
         }
         if (match.guest && match.guest.name !== player.name) {
-            socket.emit("error", "This match has already started");
+            socket.emit("error",
+                "This match has already started");
             return;
         }
         match.guest = player;
         player.joinedMatch = match;
         match.emit();
-        socket.emit("message", "Joined match " + match.name + " hosted by " + match.host.name);
-        socket.emit("message", "Your color is " + (match.guestColor === 1 ? "WHITE" : "BLACK"));
+        socket.emit("message", "Joined match " + match.name +
+            " hosted by " + match.host.name);
+        socket.emit("message", "Your color is " + (match.guestColor === 1 ?
+            "WHITE" : "BLACK"));
 
         match.host.socket.emit("guest joined", player.name);
-        match.host.socket.emit("message", "Your color is " + (match.hostColor === 1 ? "WHITE" : "BLACK"));
+        match.host.socket.emit("message", "Your color is " + (
+            match.hostColor === 1 ? "WHITE" : "BLACK"));
         console.log("Player " + player.name + " joined match " + match.name);
         emitMatches();
     });

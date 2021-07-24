@@ -12,7 +12,8 @@ module.exports = class King extends Piece {
             [1, 1], [1, -1], [-1, 1], [-1, -1]
         ];
         for (const [dR, dC] of dirs) {
-            if (this.isEmptySquare(dR, dC) || this.isEnemy(this.getPiece(dR, dC))) {
+            if (this.isEmptySquare(dR, dC) ||
+                this.isEnemy(this.getPiece(dR, dC))) {
                 moves.push(this.createMove(dR, dC));
             }
         }

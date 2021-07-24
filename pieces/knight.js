@@ -17,7 +17,8 @@ module.exports = class Knight extends Piece {
         ]
 
         for (const [dR, dC] of deltas) {
-            if (this.isEmptySquare(dR, dC) || this.isEnemy(this.getPiece(dR, dC))) {
+            if (this.isEmptySquare(dR, dC) ||
+                this.isEnemy(this.getPiece(dR, dC))) {
                 moves.push(this.createMove(dR, dC));
             }
         }

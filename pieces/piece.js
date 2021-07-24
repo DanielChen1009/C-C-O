@@ -4,7 +4,8 @@ const assert = require("assert");
 
 module.exports = class Piece {
     constructor(color, r, c, board) {
-        assert(r >= 0 && r <= 7 && c >= 0 && c <= 7, "Piece placed out of bounds");
+        assert(r >= 0 && r <= 7 && c >= 0 && c <= 7,
+            "Piece placed out of bounds");
         this.color = color;
         // r is for row, c is column.
         this.position = new Position(r, c);
@@ -28,8 +29,8 @@ module.exports = class Piece {
         return !this.pieceBoard[r][c];
     }
 
-    // Returns the piece at a position dR rows and dC columns away, or null if no piece
-    // or out of bounds.
+    // Returns the piece at a position dR rows and dC columns away, or null if
+    // no piece or out of bounds.
     getPiece(dR, dC) {
         let r = this.position.row + dR;
         let c = this.position.col + dC;
@@ -37,7 +38,8 @@ module.exports = class Piece {
         if (r > 7 || r < 0) return null;
         if (c > 7 || c < 0) return null;
         const piece = this.pieceBoard[r][c];
-        assert(!piece || piece instanceof Piece, "getPiece returned a non-null and non-Piece");
+        assert(!piece || piece instanceof Piece,
+               "getPiece returned a non-null and non-Piece");
         return piece;
     }
 
@@ -48,8 +50,8 @@ module.exports = class Piece {
         return piece.getColor() !== this.getColor();
     }
 
-    // Create a move representing moving dR rows and dC columns away from current
-    // position.
+    // Create a move representing moving dR rows and dC columns away from
+    // current position.
     createMove(dR, dC) {
         return new Move(this.position.add(dR, dC), this);
     }
@@ -70,8 +72,8 @@ module.exports = class Piece {
         return moves;
     }
 
-    // Returns all legal checkers move for this piece at position r, c.
-    // visited should be undefined on the first call.
+    // Returns all legal checkers move for this piece at position r, c. visited
+    // should be undefined on the first call.
     getCheckersMoves(r, c, visited) {
         const d = this.getColor() == 1 && this.name() == "pawn";
         const vdir = -1 * this.getColor();

@@ -9,11 +9,13 @@ class Session {
         this.socket.on("connect", () => this.initSocketHandlers());
         this.socketInitialized = false;
 
-        // Create the DOM structure for the game board and other supporting widgets.
+        // Create the DOM structure for the game board and other supporting
+        // widgets.
         this.boardOrientation = 1;
         this.promotionDialog = $("<div>");
         this.showingPromotionDialog = false;
-        this.progressbar = $("<div>").progressbar({value: false});
+        this.progressbar = $("<div>")
+            .progressbar({ value: false });
         this.buildBoard();
     }
 
@@ -41,11 +43,13 @@ class Session {
             this.showEvent("Guest " + name + " joined your match", "Info");
         });
         this.socket.on("host disconnected", (name) => {
-            this.showEvent("Host " + name + " disconnected from the match", "Info");
+            this.showEvent("Host " + name +
+                " disconnected from the match", "Info");
             this.sessionMatchName = null;
         });
         this.socket.on("guest disconnected", (name) => {
-            this.showEvent("Guest " + name + " disconnected from the match", "Info");
+            this.showEvent("Guest " + name +
+                " disconnected from the match", "Info");
             this.sessionMatchName = null;
         });
         this.socket.on("matches", (matches) => this.renderMatchList(matches));
@@ -54,7 +58,8 @@ class Session {
         this.socket.emit("get player info");
 
         // Show a nice welcome message.
-        this.showEvent("Welcome to C-C-O! Play against yourself or create/join matches against others above.");
+        this.showEvent("Welcome to C-C-O! Play against yourself or " + 
+            "create/join matches against others above.");
         this.initButtonHandlers();
 
         this.socketInitialized = true;
@@ -62,10 +67,12 @@ class Session {
 
     // Sets up all button events.
     initButtonHandlers() {
-        $("#creatematch").on("click", "#createbutton", () => this.createMatch());
-        $("#playerinfo").on("click", "#updatename", () => {
-            this.socket.emit("update name", $("#playername").val());
-        });
+        $("#creatematch")
+            .on("click", "#createbutton", () => this.createMatch());
+        $("#playerinfo")
+            .on("click", "#updatename", () => {
+                this.socket.emit("update name", $("#playername").val());
+            });
     }
 
     // Returns the word corresponding to a color int.
@@ -89,7 +96,8 @@ class Session {
     // Shows one entry in the event log.
     showEvent(msg, prefix) {
         let eventLog = $("#event-log");
-        let message = eventLog.val() + (prefix ? (prefix + ": ") : "") + msg + '\n';
+        let message = eventLog.val() + (prefix ? (prefix + ": ") : "") +
+            msg + '\n';
         eventLog.scrollTop(eventLog[0].scrollHeight);
         eventLog.val(message);
     }
@@ -106,8 +114,7 @@ class Session {
         table.empty();
 
         let tableHead = $("<thead>");
-        let row = $("<tr>")
-            .append($("<th>").text("Match Name"))
+        let row = $("<tr>").append($("<th>").text("Match Name"))
             .append($("<th>").text("Match Host"))
             .append($("<th>").text("Action"));
         tableHead.append(row);
@@ -115,9 +122,13 @@ class Session {
 
         let tableBody = $("<tbody>");
         if (matches.length === 0) {
-            let row = $("<tr>").append($("<td>").append($("p"))
-                .text("No matches available. Create one!").attr("colspan", 3)
-                .addClass("text-info").addClass("text-center"));
+            let row = $("<tr>")
+                .append($("<td>")
+                    .append($("p"))
+                    .text("No matches available. Create one!")
+                    .attr("colspan", 3)
+                    .addClass("text-info")
+                    .addClass("text-center"));
             tableBody.append(row);
         }
         for (let match of matches) {
@@ -125,8 +136,10 @@ class Session {
             let cell1 = $("<td>");
             let cell2 = $("<td>");
             let cell3 = $("<td>");
-            let actionButton = $("<button>").addClass("btn").addClass("btn-primary");;
-            if (match.host === this.playerName || match.guest === this.playerName) {
+            let actionButton = $("<button>")
+                .addClass("btn").addClass("btn-primary");;
+            if (match.host === this.playerName || match.guest === this
+                .playerName) {
                 actionButton.html("Leave");
                 actionButton.on("click", () => this.leaveMatch());
             } else {
@@ -136,10 +149,18 @@ class Session {
                     actionButton.prop("disabled", true);
                 }
             }
-            cell1.append($("<p>").addClass("text-info").addClass("text-center").text(match.name));
-            cell2.append($("<p>").addClass("text-info").addClass("text-center").text(match.host));
+            cell1.append($("<p>")
+                .addClass("text-info")
+                .addClass("text-center")
+                .text(match.name));
+            cell2.append($("<p>")
+                .addClass("text-info")
+                .addClass("text-center")
+                .text(match.host));
             cell3.append(actionButton);
-            row.append(cell1).append(cell2).append(cell3);
+            row.append(cell1)
+                .append(cell2)
+                .append(cell3);
             tableBody.append(row);
         }
         table.append(tableBody);
@@ -159,19 +180,27 @@ class Session {
 
     handleClick(squareID) {
         const rc = this.toRC(squareID);
-        this.socket.emit('input', {row: rc.r, col: rc.c, matchName: this.sessionMatchName});
+        this.socket.emit('input', { row: rc.r, col: rc.c, matchName: this
+                .sessionMatchName });
     }
 
     // Get the piece name given the piece code received from the server.
     getPieceName(pieceCode) {
         switch (parseInt(pieceCode)) {
-            case 1: return "pawn";
-            case 2: return "knight";
-            case 3: return "bishop";
-            case 4: return "rook";
-            case 5: return "queen";
-            case 6: return "king";
-            default: return null;
+            case 1:
+                return "pawn";
+            case 2:
+                return "knight";
+            case 3:
+                return "bishop";
+            case 4:
+                return "rook";
+            case 5:
+                return "queen";
+            case 6:
+                return "king";
+            default:
+                return null;
         }
     }
 
@@ -182,16 +211,19 @@ class Session {
 
     // Returns the CSS background-size value that pieces should use.
     getBackgroundSize() {
-        return (this.config.boardSize * 0.75) + "px " + (this.config.boardSize * 0.25) + "px";
+        return (this.config.boardSize * 0.75) + "px " + (this.config
+            .boardSize * 0.25) + "px";
     }
 
     // Renders pieces and other misc state onto the board.
     renderMatchState(state) {
-        if (state.matchName !== undefined) this.sessionMatchName = state.matchName;
+        if (state.matchName !== undefined) this.sessionMatchName = state
+            .matchName;
         if (state.checkmate) this.showEvent("Checkmate!", "Game End");
         if (state.stalemate) this.showEvent("Stalemate!", "Game End");
 
-        if (state.hostName === state.guestName) this.showBoardTitle("Play yourself here or join match");
+        if (state.hostName === state.guestName) this.showBoardTitle(
+            "Play yourself here or join match");
         else if (state.hostName === this.playerName && !state.guestName)
             this.showBoardTitle("Waiting for opponent");
         else this.showBoardTitle(state.hostName + " vs " + state.guestName);
@@ -206,7 +238,7 @@ class Session {
                     square.empty();
                     square.width(this.config.boardSize / 8);
                     square.height(this.config.boardSize / 8);
-                    
+
                     const pieceCode = state.board[i][j];
                     if (!pieceCode) continue;
 
@@ -226,7 +258,8 @@ class Session {
                     // assign the appropriate CSS classes.
                     const pieceData = pieceCode.split(",");
                     piece.addClass("piece");
-                    piece.addClass(this.getPieceName(pieceData[0]) + this.getColorName(pieceData[1]));
+                    piece.addClass(this.getPieceName(pieceData[0]) + this
+                        .getColorName(pieceData[1]));
                     // Scale the sprite sheet according to our board size.
                     piece.css("background-size", this.getBackgroundSize());
                 }
@@ -244,7 +277,8 @@ class Session {
         }
         if (state.selected !== undefined) {
             this.square(state.selected).append($("<div>").addClass("selected"));
-            this.square(state.selected).children(".piece").first().addClass("movable");
+            this.square(state.selected).children(".piece").first()
+                .addClass("movable");
         }
         // Draw last move arrows if necessary.
         $(".board").children(".arrow").remove();
@@ -265,10 +299,10 @@ class Session {
     setBoardOrientation(color) {
         if (color && this.boardOrientation !== color) {
             $(".board").each(function(elem, index) {
-                var arr = $.makeArray($("tr", this).detach());
-                arr.reverse();
-                $(this).append(arr);
-            });
+                    var arr = $.makeArray($("tr", this).detach());
+                    arr.reverse();
+                    $(this).append(arr);
+                });
             this.boardOrientation = color;
         }
     }
@@ -284,21 +318,26 @@ class Session {
             for (let j = 0; j < 8; j++) {
                 const squareID = i * 8 + j;
                 const cell = $("<td>");
-                const square = $("<div>").addClass("square").attr("id", squareID);
+                const square = $("<div>").addClass("square").attr("id",
+                    squareID);
                 square.on("click", () => session.handleClick(squareID));
-                // Each square is a JQuery UI "droppable" which are legal targets for pieces which are
-                // "draggable" onto them.
+                // Each square is a JQuery UI "droppable" which are legal
+                // targets for pieces which are "draggable" onto them.
                 square.droppable({
                     hoverClass: "hover",
                     drop: (event, ui) => {
-                        if (!ui.draggable.hasClass("movable") || !ui.draggable.hasClass("ui-draggable")) return;
+                        if (!ui.draggable.hasClass("movable") ||
+                            !ui.draggable.hasClass("ui-draggable")) return;
 
-                        // Only have the piece revert back to original position if the legal move
-                        // highlight is not present on the square the piece got dropped onto.
-                        // Otherwise, attach it to the dropped-on square.
+                        // Only have the piece revert back to original position
+                        // if the legal move highlight is not present on the
+                        // square the piece got dropped onto. Otherwise, attach
+                        // it to the dropped-on square.
                         const legal = square.children(".legalmove").length > 0;
                         ui.draggable.draggable("option", "revert", !legal);
-                        if (legal) ui.draggable.detach().appendTo(square).css({top: 0,left: 0, position: "absolute"});
+                        if (legal) ui.draggable.detach()
+                            .appendTo(square)
+                            .css({ top: 0, left: 0, position: "absolute" });
                         session.handleClick(squareID);
                     }
                 })
@@ -309,7 +348,8 @@ class Session {
             content.append(row);
         }
 
-        $("#" + this.config.boardContainerId).append(this.progressbar).append(content);
+        $("#" + this.config.boardContainerId).append(this.progressbar)
+            .append(content);
     }
 
     // Returns the x, y position of the given element's center.
@@ -317,7 +357,8 @@ class Session {
         const rc = this.toRC(squareID);
         return {
             x: (2 * rc.c + 1) * this.config.boardSize / 16,
-            y: (2 * (this.boardOrientation === 1 ? rc.r : 7 - rc.r) + 1) * this.config.boardSize / 16
+            y: (2 * (this.boardOrientation === 1 ? rc.r : 7 - rc.r) + 1) *
+                this.config.boardSize / 16
         };
     }
 
@@ -331,11 +372,12 @@ class Session {
             .attr("height", this.config.boardSize).appendTo($(".board"));
         const ctx = canvas[0].getContext('2d');
 
-        const headlen = this.config.boardSize / 30;   // length of head in pixels.
-        const arrowThickness = this.config.boardSize / 40; // Thickness of the arrow line.
+        const headlen = this.config.boardSize / 30; // length of head in pixels.
+        const arrowThickness = this.config.boardSize / 40; // Arrow thickness.
         const angle = Math.atan2(to.y - from.y, to.x - from.x);
-        
-        // starting path of the arrow from the start square to the end square and drawing the stroke
+
+        // Starting path of the arrow from the start square to the end square
+        // and drawing the stroke
         ctx.beginPath();
         ctx.moveTo(from.x, from.y);
         ctx.lineTo(to.x, to.y);
@@ -343,22 +385,24 @@ class Session {
         ctx.lineWidth = arrowThickness;
         ctx.stroke();
 
-        //starting a new path from the head of the arrow to one of the sides of the point
+        // Starting a new path from the head of the arrow to one of the sides of
+        // the point
         ctx.beginPath();
         ctx.moveTo(to.x, to.y);
         ctx.lineTo(to.x - headlen * Math.cos(angle - Math.PI / 7),
-                   to.y - headlen * Math.sin(angle - Math.PI / 7));
+            to.y - headlen * Math.sin(angle - Math.PI / 7));
 
-        //path from the side point of the arrow, to the other side point
-        ctx.lineTo(to.x - headlen * Math.cos(angle + Math.PI / 7), 
-                   to.y - headlen * Math.sin(angle + Math.PI / 7));
+        // Path from the side point of the arrow, to the other side point
+        ctx.lineTo(to.x - headlen * Math.cos(angle + Math.PI / 7),
+            to.y - headlen * Math.sin(angle + Math.PI / 7));
 
-        //path from the side point back to the tip of the arrow, and then again to the opposite side point
+        // Path from the side point back to the tip of the arrow, and then again
+        // to the opposite side point
         ctx.lineTo(to.x, to.y);
         ctx.lineTo(to.x - headlen * Math.cos(angle - Math.PI / 7),
-                   to.y - headlen * Math.sin(angle - Math.PI / 7));
+            to.y - headlen * Math.sin(angle - Math.PI / 7));
 
-        //draws the paths created above
+        // Draws the paths created above
         ctx.strokeStyle = "#cc0000";
         ctx.lineWidth = arrowThickness;
         ctx.stroke();
@@ -366,15 +410,17 @@ class Session {
         ctx.fill();
     }
 
-    // Shows the promotion dialog that allows user to pick a piece to promote to.
+    // Shows the promotion dialog that allows user to pick a piece to promote to
     showPromotionDialog(squareID, color) {
         this.promotionDialog.empty();
         const pieceNames = ["queen", "rook", "bishop", "knight"];
         const rc = this.toRC(squareID);
         for (const pieceName of pieceNames) {
-            const piece = $("<div>").addClass("piece " + pieceName + this.getColorName(color));
+            const piece = $("<div>")
+                .addClass("piece " + pieceName + this.getColorName(color));
             piece.on("click", () => {
-                this.socket.emit('input', {row: rc.r, col: rc.c, choice: pieceName, matchName: this.sessionMatchName});
+                this.socket.emit('input', { row: rc.r, col: rc.c,
+                    choice: pieceName, matchName: this.sessionMatchName });
                 this.promotionDialog.dialog("close");
                 this.showingPromotionDialog = false;
             });
