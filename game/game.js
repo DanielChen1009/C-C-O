@@ -12,10 +12,7 @@ module.exports = class Game {
     constructor() {
         this.turn = WHITE;
         this.selected = null;
-        this.board = new Array(8)
-            .fill(null)
-            .map(() => new Array(8)
-                .fill(null));
+        this.board = new Array(8).fill(null).map(() => new Array(8).fill(null));
         this.legalMoves = null; // Either Array of Moves or null.
         this.boardUpdated = true;
         this.lastMove = null; // Either a Move or null;
@@ -116,15 +113,7 @@ module.exports = class Game {
             this.promotion = this.checkForPromotion(this.turn);
             this.checkOthello(move);
             this.turn = this.promotion ? this.turn : this.opposite(this.turn);
-
-            // Determine if the game is over by Chess rules.
-            const isChecked = this.checkForCheck(this.turn);
-            const noMoves = this.hasNoMoves();
-            if (noMoves) {
-                this.result = isChecked ? this.turn : 0;
-                this.resultReason = isChecked ? "checkmate" : "stalemate";
-            }
-
+            this.checkChessResult();
             return true;
         }
         return false;
@@ -196,6 +185,7 @@ module.exports = class Game {
             this.boardUpdated = true;
             this.promotion = null;
             this.turn = this.opposite(this.turn);
+            this.checkChessResult();
             return;
         }
 
@@ -230,6 +220,16 @@ module.exports = class Game {
 
         if (this.legalMoves) {
             this.trimLegalMoves();
+        }
+    }
+
+    // Determine if the game is over by Chess rules.
+    checkChessResult() {
+        const isChecked = this.checkForCheck(this.turn);
+        const noMoves = this.hasNoMoves();
+        if (noMoves) {
+            this.result = isChecked ? this.opposite(this.turn) : 0;
+            this.resultReason = isChecked ? "checkmate" : "stalemate";
         }
     }
 
