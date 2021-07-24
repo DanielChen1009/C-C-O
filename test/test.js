@@ -37,7 +37,7 @@ function parseTestCase(testCaseStr) {
             case "TURN":
                 assert.equal(sectionBody.length, 1);
                 assert.match(sectionBody[0], /(white|black)/);
-                testCase.turn = sectionBody[0] === "white" ? WHITE : BLACK;
+                testCase.game.turn = (sectionBody[0] === "white" ? WHITE : BLACK);
                 break;
             case "INPUTS":
                 assert(sectionBody.length > 0, "Need at least one input");
@@ -150,16 +150,21 @@ describe("C-C-O tests", () => {
 
         it(testCase.name, () => {
             for (const color of [WHITE, BLACK]) {
-                const data = testCase.game.data([color]);
+                let data = testCase.game.data([color]);
+
+                // If a board state expectation is set, check it against the real returned data.
                 if (testCase.expectedBoard) {
+                    assert(data.board, "No board found in data!");
                     assert.equal(printBoard(data.board), testCase.expectedBoard, "Board not equal!");
                 }
                 const expectedData = testCase.expectedData.get(color);
                 if (!expectedData) continue;
 
+                // If present, check expected data fields.
+                if (data.board) data.board = "<REDACTED FOR READABILITY>"; // Dominates stdout if kept.
                 for (const [key, value] of expectedData) {
                     assert.notStrictEqual(data[key], undefined,
-                        "data has no field [" + key + "]: " + JSON.stringify(data, null, 2));
+                        "data has no field [" + key + "]:\n" + JSON.stringify(data, null, 2));
                     switch (key) {
                         case "legalMoves":
                             assert.deepEqual(data.legalMoves.map(m => toRC(m)), value);

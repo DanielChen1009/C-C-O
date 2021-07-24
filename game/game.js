@@ -37,7 +37,7 @@ module.exports = class Game {
         }
     }
 
-    // Returns the data that will be transmitted to the client for rendering.
+    // Public API: Returns the data that will be transmitted to the client.
     // This should be as small as possible while conveying the necessary
     // information. Most fields should be undefined whenever possible since
     // those will not be sent over the wire.
@@ -76,63 +76,8 @@ module.exports = class Game {
         return ret;
     }
 
-    // Returns the word corresponding to a color int.
-    getColorName(color) {
-        return parseInt(color) === 1 ? "white" : "black";
-    }
-
-    // Places all pieces in initial position for the given color.
-    placePieces(color, pos) {
-        this.board[pos][0] = new Rook(color, pos, 0, this.board);
-        this.board[pos][1] = new Knight(color, pos, 1, this.board);
-        this.board[pos][2] = new Bishop(color, pos, 2, this.board);
-        this.board[pos][3] = new Queen(color, pos, 3, this.board);
-        this.board[pos][4] = new King(color, pos, 4, this.board);
-        this.board[pos][5] = new Bishop(color, pos, 5, this.board);
-        this.board[pos][6] = new Knight(color, pos, 6, this.board);
-        this.board[pos][7] = new Rook(color, pos, 7, this.board);
-        for (let i = 0; i < 8; ++i) {
-            this.board[pos - color][i] = new Pawn(color, pos - color, i,
-                this.board);
-        }
-    }
-
-    // Checks whether the piece can move to r,c. If so, apply the move and
-    // return true, else false.
-    movePiece(r, c) {
-        for (let move of this.legalMoves) {
-            if (!move.toPos.equals(r, c)) continue;
-            this.selected.moved = true;
-            move.apply();
-            this.lastMove = move;
-            this.legalMoves = null;
-            this.selected = null;
-            // Give pieces a chance to execute some piece-specific logic
-            // before passing the turn.
-            for (const piece of this.pieces()) piece.onPassTurn(this.turn);
-            this.promotion = this.checkForPromotion(this.turn);
-            this.checkOthello(move);
-            this.turn = this.promotion ? this.turn : this.opposite(this.turn);
-            this.checkChessResult();
-            return true;
-        }
-        return false;
-    }
-
-    // This trims away the legal moves that causes the own king to be in check.
-    trimLegalMoves() {
-        for (let i = this.legalMoves.length - 1; i >= 0; i--) {
-            let move = this.legalMoves[i];
-            move.apply();
-            if (this.checkForCheck(this.turn)) {
-                this.legalMoves.splice(i, 1);
-            }
-            move.undo();
-        }
-    }
-
-    // The main user input handling method. Every time the user clicks anywhere,
-    // this is called.
+    // Public API: rhe main user input handling method. Every time the user
+    // clicks anywhere, this should called.
     handleInput(r, c, color, choice) {
         assert(color === WHITE || color === BLACK, "Invalid color");
 
@@ -140,9 +85,8 @@ module.exports = class Game {
         if (this.result !== null) return;
 
         // If it's not the current player's turn, we don't do anything.
-        if (this.turn !== color) {
-            return;
-        }
+        if (this.turn !== color) return;
+
         const colorName = this.getColorName(color);
         if (DEBUG) console.log("handleInput(" + r + ", " + c + ", " + colorName
             + ", " + choice + ") promotion: " + (this.promotion != null) +
@@ -186,6 +130,7 @@ module.exports = class Game {
             this.promotion = null;
             this.turn = this.opposite(this.turn);
             this.checkChessResult();
+            this.checkOthelloResult();
             return;
         }
 
@@ -223,13 +168,66 @@ module.exports = class Game {
         }
     }
 
+    // Checks whether the piece can move to r,c. If so, apply the move and
+    // return true, else false.
+    movePiece(r, c) {
+        for (let move of this.legalMoves) {
+            if (!move.toPos.equals(r, c)) continue;
+            this.selected.moved = true;
+            move.apply();
+            this.lastMove = move;
+            this.legalMoves = null;
+            this.selected = null;
+            // Give pieces a chance to execute some piece-specific logic
+            // before passing the turn.
+            for (const piece of this.pieces()) piece.onPassTurn(this.turn);
+            this.promotion = this.checkForPromotion(this.turn);
+            this.turn = this.promotion ? this.turn : this.opposite(this.turn);
+            this.checkChessResult();
+            this.checkOthelloResult();
+            return true;
+        }
+        return false;
+    }
+
+    // This trims away the legal moves that causes the own king to be in check.
+    trimLegalMoves() {
+        for (let i = this.legalMoves.length - 1; i >= 0; i--) {
+            const move = this.legalMoves[i];
+            assert.equal(move.piece.getColor(), this.turn);
+            move.apply();
+            if (this.checkForCheck(this.turn)) {
+                this.legalMoves.splice(i, 1);
+            }
+            move.undo();
+        }
+    }
+
     // Determine if the game is over by Chess rules.
     checkChessResult() {
         const isChecked = this.checkForCheck(this.turn);
         const noMoves = this.hasNoMoves();
         if (noMoves) {
             this.result = isChecked ? this.opposite(this.turn) : 0;
-            this.resultReason = isChecked ? "checkmate" : "stalemate";
+            this.resultReason = isChecked ? "Checkmate" : "Stalemate";
+        }
+    }
+
+    // Determine if the game is over by Othello rules.
+    checkOthelloResult() {
+        let kingCount = 0;
+        for (const piece of this.pieces(WHITE)) {
+            if (piece instanceof King) kingCount++;
+        }
+        // White has no kings - black won.
+        if (kingCount === 0) {
+            this.result = BLACK;
+            this.resultReason = "White's king got flipped by Othello rules";
+        }
+        // White has 2 kings - white won.
+        if (kingCount === 2) {
+            this.result = WHITE;
+            this.resultReason = "Black's king got flipped by Othello rules";
         }
     }
 
@@ -255,27 +253,11 @@ module.exports = class Game {
         return moves;
     }
 
-    // Returns the opposite color to the given color int.
-    opposite(color) {
-        return color === WHITE ? BLACK : WHITE;
-    }
-
-    // A generator that runs over all pieces of the given color.
-    * pieces(color) {
-        for (let i = 0; i < 8; ++i) {
-            for (let j = 0; j < 8; ++j) {
-                let piece = this.board[i][j];
-                if (piece && (!color || piece.getColor() === color))
-                    yield piece;
-            }
-        }
-    }
-
     // Checks whether the given color's king is in check.
     checkForCheck(color) {
         for (let piece of this.pieces(this.opposite(color))) {
             let moves = piece.legalMoves();
-            for (let move of moves) {
+            for (const move of moves) {
                 if (move.capturesKing()) return true;
             }
         }
@@ -293,33 +275,43 @@ module.exports = class Game {
         return null;
     }
 
-    // Checks for and performs othello flips that would be caused by the given
-    // move.
-    checkOthello(move) {
-        const dirs = [
-            [1, 0], [-1, 0], [0, 1], [0, -1],
-            [1, 1], [1, -1], [-1, 1], [-1, -1]
-        ];
-        for (const dir of dirs) {
-            let newPos = move.toPos;
-            const flips = [];
-            while (true) {
-                newPos = newPos.add(dir[0], dir[1]);
-                if (newPos.outOfBound()) break;
-                const piece = this.board[newPos.row][newPos.col];
-                if (!piece) break;
-                if (piece.isEnemy(move.piece)) flips.push(piece);
-                else {
-                    for (const flip of flips) {
-                        flip.color = move.piece.getColor();
-                        // If we flipped a king, the game immediately ends.
-                        if (flip instanceof King) {
-                            this.result = flip.color;
-                            this.resultReason = "othello - king was flipped";
-                        }
-                    }
-                    break;
-                }
+    /********************************************
+     * Basic utils. These should rarely change. *
+     ********************************************/
+
+    // Returns the word corresponding to a color int.
+    getColorName(color) {
+        return parseInt(color) === 1 ? "white" : "black";
+    }
+
+    // Places all pieces in initial position for the given color.
+    placePieces(color, pos) {
+        this.board[pos][0] = new Rook(color, pos, 0, this.board);
+        this.board[pos][1] = new Knight(color, pos, 1, this.board);
+        this.board[pos][2] = new Bishop(color, pos, 2, this.board);
+        this.board[pos][3] = new Queen(color, pos, 3, this.board);
+        this.board[pos][4] = new King(color, pos, 4, this.board);
+        this.board[pos][5] = new Bishop(color, pos, 5, this.board);
+        this.board[pos][6] = new Knight(color, pos, 6, this.board);
+        this.board[pos][7] = new Rook(color, pos, 7, this.board);
+        for (let i = 0; i < 8; ++i) {
+            this.board[pos - color][i] = new Pawn(color, pos - color, i,
+                this.board);
+        }
+    }
+
+    // Returns the opposite color to the given color int.
+    opposite(color) {
+        return color === WHITE ? BLACK : WHITE;
+    }
+
+    // A generator that runs over all pieces of the given color.
+    * pieces(color) {
+        for (let i = 0; i < 8; ++i) {
+            for (let j = 0; j < 8; ++j) {
+                let piece = this.board[i][j];
+                if (piece && (!color || piece.getColor() === color))
+                    yield piece;
             }
         }
     }
