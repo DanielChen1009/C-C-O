@@ -219,8 +219,9 @@ class Session {
     renderMatchState(state) {
         if (state.matchName !== undefined) this.sessionMatchName = state
             .matchName;
-        if (state.checkmate) this.showEvent("Checkmate!", "Game End");
-        if (state.stalemate) this.showEvent("Stalemate!", "Game End");
+        if (state.result !== undefined) {
+            this.showEvent(state.resultReason, "Game End");
+        }
 
         if (state.hostName === state.guestName) this.showBoardTitle(
             "Play yourself here or join match");

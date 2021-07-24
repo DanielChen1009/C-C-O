@@ -10,7 +10,6 @@ const assert = require("assert");
 
 module.exports = class Game {
     constructor() {
-        this.isChecked = false;
         this.turn = WHITE;
         this.selected = null;
         this.board = new Array(8)
@@ -21,6 +20,9 @@ module.exports = class Game {
         this.boardUpdated = true;
         this.lastMove = null; // Either a Move or null;
         this.promotion = null; // Either a Piece to be promoted or null.
+        // Either a color code for who won, or 0 for draw. Null means not ended.
+        this.result = null; 
+        this.resultReason = null; // The string indicating why the game ended.
 
         if (DEBUG) {
             this.board[0][0] = new King(BLACK, 0, 0, this.board);
@@ -52,21 +54,29 @@ module.exports = class Game {
         for (const color of colors) assert(color === WHITE || color ===
             BLACK, "Invalid color: " + color);
         if (DEBUG) console.log("data(" + colors + ")");
-        const noMoves = this.hasNoMoves();
-        return {
-            board: this.boardUpdated ? this.board.map(row => row.map(
-                p => p ? p.data() : null)) : undefined,
-            selected: (this.selected && colors.includes(this.selected
-                    .getColor())) ? this.selected.position.data() : undefined,
-            legalMoves: (colors.includes(this.turn) && this.legalMoves) ?
-                this.legalMoves.map(m => m.data()) : undefined,
-            checkmate: noMoves && this.isChecked,
-            stalemate: noMoves && !this.isChecked,
-            lastMove: this.lastMove ? this.lastMove.allPos()
-                .map(pos => pos.data()) : undefined,
-            promotion: (this.promotion && colors.includes(this.promotion
-                    .getColor())) ? this.promotion.position.data() : undefined,
+
+        const ret = {};
+        if (this.boardUpdated) {
+            ret.board = this.board.map(
+                row => row.map(p => p ? p.data() : null));
         }
+        if (this.selected && colors.includes(this.selected.getColor())) {
+            ret.selected = this.selected.position.data();
+        }
+        if (this.legalMoves && colors.includes(this.turn)) {
+            ret.legalMoves = this.legalMoves.map(m => m.data());
+        }
+        if (this.lastMove) {
+            ret.lastMove = this.lastMove.allPos().map(pos => pos.data());
+        }
+        if (this.promotion && colors.includes(this.promotion.getColor())) {
+            ret.promotion = this.promotion.position.data();
+        }
+        if (this.result != null) {
+            ret.result = this.result;
+            ret.resultReason = this.resultReason;
+        }
+        return ret;
     }
 
     // Returns the word corresponding to a color int.
@@ -94,21 +104,28 @@ module.exports = class Game {
     // return true, else false.
     movePiece(r, c) {
         for (let move of this.legalMoves) {
-            if (move.toPos.equals(r, c)) {
-                if (!this.selected.moved) this.selected.moved = true;
-                move.apply();
-                this.lastMove = move;
-                this.legalMoves = null;
-                this.selected = null;
-                // Give pieces a chance to execute some piece-specific logic
-                // before passing the turn.
-                for (const piece of this.pieces()) piece.onPassTurn(this.turn);
-                this.promotion = this.checkForPromotion(this.turn);
-                this.turn = this.promotion ? this.turn : this.opposite(
-                    this.turn);
-                this.isChecked = this.checkForCheck(this.turn);
-                return true;
+            if (!move.toPos.equals(r, c)) continue;
+            this.selected.moved = true;
+            move.apply();
+            this.lastMove = move;
+            this.legalMoves = null;
+            this.selected = null;
+            // Give pieces a chance to execute some piece-specific logic
+            // before passing the turn.
+            for (const piece of this.pieces()) piece.onPassTurn(this.turn);
+            this.promotion = this.checkForPromotion(this.turn);
+            this.checkOthello(move);
+            this.turn = this.promotion ? this.turn : this.opposite(this.turn);
+
+            // Determine if the game is over by Chess rules.
+            const isChecked = this.checkForCheck(this.turn);
+            const noMoves = this.hasNoMoves();
+            if (noMoves) {
+                this.result = isChecked ? this.turn : 0;
+                this.resultReason = isChecked ? "checkmate" : "stalemate";
             }
+
+            return true;
         }
         return false;
     }
@@ -129,6 +146,10 @@ module.exports = class Game {
     // this is called.
     handleInput(r, c, color, choice) {
         assert(color === WHITE || color === BLACK, "Invalid color");
+
+        // Game is over, don't handle any more inputs.
+        if (this.result !== null) return;
+
         // If it's not the current player's turn, we don't do anything.
         if (this.turn !== color) {
             return;
@@ -270,5 +291,36 @@ module.exports = class Game {
                 return piece;
         }
         return null;
+    }
+
+    // Checks for and performs othello flips that would be caused by the given
+    // move.
+    checkOthello(move) {
+        const dirs = [
+            [1, 0], [-1, 0], [0, 1], [0, -1],
+            [1, 1], [1, -1], [-1, 1], [-1, -1]
+        ];
+        for (const dir of dirs) {
+            let newPos = move.toPos;
+            const flips = [];
+            while (true) {
+                newPos = newPos.add(dir[0], dir[1]);
+                if (newPos.outOfBound()) break;
+                const piece = this.board[newPos.row][newPos.col];
+                if (!piece) break;
+                if (piece.isEnemy(move.piece)) flips.push(piece);
+                else {
+                    for (const flip of flips) {
+                        flip.color = move.piece.getColor();
+                        // If we flipped a king, the game immediately ends.
+                        if (flip instanceof King) {
+                            this.result = flip.color;
+                            this.resultReason = "othello - king was flipped";
+                        }
+                    }
+                    break;
+                }
+            }
+        }
     }
 }

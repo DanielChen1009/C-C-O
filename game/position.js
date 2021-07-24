@@ -19,4 +19,8 @@ module.exports = class Position {
     copy() {
         return new Position(this.row, this.col);
     }
+
+    outOfBound() {
+        return this.row < 0 || this.col < 0 || this.row > 7 || this.col > 7;
+    }
 }
