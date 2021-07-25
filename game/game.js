@@ -5,18 +5,27 @@ const Rook = require('../pieces/rook.js');
 const Queen = require('../pieces/queen.js');
 const King = require('../pieces/king.js');
 const Piece = require('../pieces/piece.js');
-const { WHITE, BLACK, DEBUG } = require("../game/constants.js");
+const Position = require('./position.js');
+const { WHITE, BLACK, DEBUG } = require("./constants.js");
 const assert = require("assert");
 
 module.exports = class Game {
     constructor() {
         this.turn = WHITE;
-        this.selected = null;
+        this.selected = null; // Selected piece.
         this.board = new Array(8).fill(null).map(() => new Array(8).fill(null));
         this.legalMoves = null; // Either Array of Moves or null.
+
+        // Signals whether to send a fresh board state to players.
         this.boardUpdated = true;
+
+        // Tic-tac-toe center.
+        this.tttCenter = new Position(this.randomInteger(3, 4),
+                                      this.randomInteger(1, 6));
+
         this.lastMove = null; // Either a Move or null;
         this.promotion = null; // Either a Piece to be promoted or null.
+
         // Either a color code for who won, or 0 for draw. Null means not ended.
         this.result = null; 
         this.resultReason = null; // The string indicating why the game ended.
@@ -50,13 +59,13 @@ module.exports = class Game {
     data(colors) {
         for (const color of colors) assert(color === WHITE || color ===
             BLACK, "Invalid color: " + color);
-        if (DEBUG) console.log("data(" + colors + ")");
 
         const ret = {};
         if (this.boardUpdated) {
             ret.board = this.board.map(
                 row => row.map(p => p ? p.data() : null));
         }
+        ret.tttCenter = this.tttCenter.data();
         if (this.selected && colors.includes(this.selected.getColor())) {
             ret.selected = this.selected.position.data();
         }
@@ -131,6 +140,7 @@ module.exports = class Game {
             this.turn = this.opposite(this.turn);
             this.checkChessResult();
             this.checkOthelloResult();
+            this.checkTicTacToeResult();
             return;
         }
 
@@ -185,6 +195,7 @@ module.exports = class Game {
             this.turn = this.promotion ? this.turn : this.opposite(this.turn);
             this.checkChessResult();
             this.checkOthelloResult();
+            this.checkTicTacToeResult();
             return true;
         }
         return false;
@@ -228,6 +239,37 @@ module.exports = class Game {
         if (kingCount === 2) {
             this.result = WHITE;
             this.resultReason = "Black's king got flipped by Othello rules";
+        }
+    }
+
+    // Determine if the game is over by Tic-Tac-Toe rules
+    checkTicTacToeResult() {
+        const r = this.tttCenter.row;
+        const c = this.tttCenter.col;
+        // Horizontals
+        let lines = [[[r-1,c-1], [r-1,c], [r-1,c+1]],
+                     [[r,c-1], [r,c], [r,c+1]],
+                     [[r+1,c-1], [r+1,c], [r+1,c+1]]];
+        // Verticals
+        lines.concat([[[r-1,c-1], [r,c-1], [r+1,c-1]],
+                      [[r-1,c], [r,c], [r+1,c+1]],
+                      [[r+1,c-1], [r+1,c], [r+1,c+1]]]);
+
+        // Diagonals
+        lines.concat([[[r-1,c-1], [r,c], [r+1,c+1]],
+                      [[r-1,c+1], [r,c], [r+1,c-1]]]);
+
+        for (const line of lines) {
+            const p = line.map(pos => this.board[pos[0]][pos[1]]);
+
+            if (p[0] && p[1] && p[2] && p[0].isTicTacToe() && p[1].isTicTacToe()
+                && p[2].isTicTacToe() && p[0].getColor() === p[1].getColor()
+                && p[1].getColor() === p[2].getColor()) {
+                this.result = p[0].getColor();
+                this.resultReason = this.getColorName(this.result) +
+                    " wins by Tic-Tac-Toe";
+                break;
+            }
         }
     }
 
@@ -278,6 +320,11 @@ module.exports = class Game {
     /********************************************
      * Basic utils. These should rarely change. *
      ********************************************/
+
+    // Returns a random integer between min and max inclusive.
+    randomInteger(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
 
     // Returns the word corresponding to a color int.
     getColorName(color) {

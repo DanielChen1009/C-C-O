@@ -270,6 +270,16 @@ class Session {
         for (let i = 0; i < 64; i++) {
             this.square(i).children(".legalmove").remove();
             this.square(i).children(".selected").remove();
+            this.square(i).children(".ttt").remove();
+        }
+        if (state.tttCenter !== undefined) {
+            const rc = this.toRC(state.tttCenter);
+            for (let r = -1; r <= 1; r++) {
+                for (let c = -1; c <= 1; c++) {
+                    const squareID = 8*(rc.r + r) + rc.c + c;
+                    this.square(squareID).append($("<div>").addClass("ttt"));
+                }
+            }
         }
         if (state.legalMoves) {
             for (let move of state.legalMoves) {

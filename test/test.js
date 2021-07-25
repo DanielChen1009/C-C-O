@@ -10,6 +10,7 @@ const Rook = require('../pieces/rook.js');
 const Queen = require('../pieces/queen.js');
 const King = require('../pieces/king.js');
 const Piece = require('../pieces/piece.js');
+const Position = require('../game/Position.js');
 const { WHITE, BLACK } = require("../game/constants.js");
 const assert = require("assert");
 const fs = require("fs");
@@ -33,6 +34,11 @@ function parseTestCase(testCaseStr) {
             case "BOARD":
                 assert.equal(sectionBody.length, 8);
                 testCase.game.board = parseBoard(sectionBody);
+                break;
+            case "TICTACTOE":
+                assert.equal(sectionBody.length, 1);
+                const [r, c] = sectionBody[0].split(",").map(s => parseInt(s));
+                testCase.game.tttCenter = new Position(r, c);
                 break;
             case "TURN":
                 assert.equal(sectionBody.length, 1);

@@ -4,6 +4,7 @@ module.exports = class King extends Piece {
 
     name() { return "king"; }
     code() { return 6; }
+    isTicTacToe() { return true; }
 
     legalMoves() {
         const moves = super.legalMoves();

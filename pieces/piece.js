@@ -116,6 +116,9 @@ module.exports = class Piece {
     // Unique human-readable name for this piece type.
     name() { assert.fail("Not implemented"); }
 
+    // Whether this piece is eligible for tic-tac-toe.
+    isTicTacToe() { return false; }
+
     // The color of this piece. Either white or black.
     getColor() {
         return this.color;
