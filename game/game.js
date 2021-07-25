@@ -251,13 +251,13 @@ module.exports = class Game {
                      [[r,c-1], [r,c], [r,c+1]],
                      [[r+1,c-1], [r+1,c], [r+1,c+1]]];
         // Verticals
-        lines.concat([[[r-1,c-1], [r,c-1], [r+1,c-1]],
-                      [[r-1,c], [r,c], [r+1,c+1]],
-                      [[r+1,c-1], [r+1,c], [r+1,c+1]]]);
+        lines = lines.concat([[[r-1,c-1], [r,c-1], [r+1,c-1]],
+                             [[r-1,c], [r,c], [r+1,c]],
+                             [[r-1,c+1], [r,c+1], [r+1,c+1]]]);
 
         // Diagonals
-        lines.concat([[[r-1,c-1], [r,c], [r+1,c+1]],
-                      [[r-1,c+1], [r,c], [r+1,c-1]]]);
+        lines = lines.concat([[[r-1,c-1], [r,c], [r+1,c+1]],
+                             [[r-1,c+1], [r,c], [r+1,c-1]]]);
 
         for (const line of lines) {
             const p = line.map(pos => this.board[pos[0]][pos[1]]);
