@@ -1,5 +1,5 @@
 const Piece = require("./piece.js");
-const Move = require("../game/Move.js");
+const Move = require("../game/move.js");
 
 module.exports = class King extends Piece {
 
