@@ -36,7 +36,7 @@ module.exports = class Move {
             this.board[pos.row][pos.col] = null;
         }
         for (const piece of this.flippedPieces) {
-            piece.color = piece.getColor() === WHITE ? BLACK : WHITE;
+            piece.color = this.piece.getColor();
         }
         if (this.childMove) this.childMove.apply();
         this.board[this.toPos.row][this.toPos.col] = this.piece;
