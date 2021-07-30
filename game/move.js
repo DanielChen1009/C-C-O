@@ -17,6 +17,8 @@ module.exports = class Move {
         this.capturedPieces.set(this.toPos,
             this.board[this.toPos.row][this.toPos.col]);
         this.flippedPieces = []; // Flipped pieces in Othello.
+
+        this.childMove = null; // A child move to this move.
         this.checkOthelloFlips();
     }
 
@@ -36,6 +38,7 @@ module.exports = class Move {
         for (const piece of this.flippedPieces) {
             piece.color = piece.getColor() === WHITE ? BLACK : WHITE;
         }
+        if (this.childMove) this.childMove.apply();
         this.board[this.toPos.row][this.toPos.col] = this.piece;
         this.board[this.piece.position.row][this.piece.position.col] = null;
         this.fromPos = this.piece.position.copy();
@@ -51,6 +54,7 @@ module.exports = class Move {
         for (const piece of this.flippedPieces) {
             piece.color = piece.getColor() === WHITE ? BLACK : WHITE;
         }
+        if (this.childMove) this.childMove.undo();
         this.piece.position = this.fromPos.copy();
         this.board[this.piece.position.row][this.piece.position.col] =
             this.piece;
@@ -64,12 +68,6 @@ module.exports = class Move {
                 return true;
             }
         }
-        /*
-        for (const piece of this.flippedPieces) {
-            // If we flipped a king in othello, the game immediately ends.
-            if (piece.name() === "king") return true;
-        }
-        */
         return false;
     }
 

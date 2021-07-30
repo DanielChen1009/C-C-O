@@ -220,7 +220,8 @@ class Session {
         if (state.matchName !== undefined) this.sessionMatchName = state
             .matchName;
         if (state.result !== undefined) {
-            this.showEvent(state.resultReason, "Game End");
+            this.showEvent(state.resultReason,
+                "You " + (state.result === state.yourColor ? "win" : "lose"));
         }
 
         if (state.hostName === state.guestName) this.showBoardTitle(

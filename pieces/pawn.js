@@ -1,4 +1,5 @@
 const Piece = require("./piece.js");
+const {WHITE, BLACK} = require("../game/constants.js");
 const assert = require("assert");
 
 module.exports = class Pawn extends Piece {
@@ -15,8 +16,10 @@ module.exports = class Pawn extends Piece {
     legalMoves() {
         const moves = super.legalMoves();
 
+        // Whether this pawn is at the home position.
+        const atHome = this.position.row === (this.getColor() === WHITE ? 6 : 1);
         // Vertical distance to travel.
-        const vdists = this.moved ? [1] : [1, 2];
+        const vdists = (this.moved || !atHome) ? [1] : [1, 2];
         // Vertical direction (up or down).
         const vdir = -1 * this.getColor();
 

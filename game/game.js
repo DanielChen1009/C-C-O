@@ -192,7 +192,12 @@ module.exports = class Game {
             // before passing the turn.
             for (const piece of this.pieces()) piece.onPassTurn(this.turn);
             this.promotion = this.checkForPromotion(this.turn);
+
+            // If we are promoting, the player needs to move again.
+            // Otherwise give the turn to the other player.
             this.turn = this.promotion ? this.turn : this.opposite(this.turn);
+            
+            // Check whether the game is over.
             this.checkChessResult();
             this.checkOthelloResult();
             this.checkTicTacToeResult();
@@ -203,9 +208,19 @@ module.exports = class Game {
 
     // This trims away the legal moves that causes the own king to be in check.
     trimLegalMoves() {
+        const isChecked = this.checkForCheck(this.turn);
         for (let i = this.legalMoves.length - 1; i >= 0; i--) {
             const move = this.legalMoves[i];
             assert.equal(move.piece.getColor(), this.turn);
+
+            // Don't allow castling if the player is in check.
+            if (isChecked && move.childMove) {
+                this.legalMoves.splice(i, 1);
+                continue;
+            }
+
+            // We "make" the move and check if we are in check. If so then we
+            // cannot allow this move. Then undo the move.
             move.apply();
             if (this.checkForCheck(this.turn)) {
                 this.legalMoves.splice(i, 1);
