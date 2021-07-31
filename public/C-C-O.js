@@ -287,9 +287,14 @@ class Session {
     setBoardOrientation(color) {
         if (color && this.boardOrientation !== color) {
             $(".board").each(function(elem, index) {
-                    var arr = $.makeArray($("tr", this).detach());
-                    arr.reverse();
-                    $(this).append(arr);
+                    const rows = $.makeArray($(this).children("tr").detach());
+                    rows.reverse();
+                    for (const row of rows) {
+                        const cols = $.makeArray($(row).children("td").detach());
+                        cols.reverse();
+                        $(row).append(cols);
+                    }
+                    $(this).append(rows);
                 });
             this.boardOrientation = color;
         }
