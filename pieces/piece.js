@@ -1,6 +1,7 @@
-const Position = require("../game/position.js");
-const Move = require("../game/move.js");
+const Position = require("../game/position");
+const Move = require("../game/move");
 const assert = require("assert");
+const {getPieceCode} = require("../public/constants");
 
 module.exports = class Piece {
     constructor(color, r, c, board) {
@@ -17,6 +18,11 @@ module.exports = class Piece {
     // Returns the socket.io wire-format data for this piece.
     data() {
         return this.code() + "," + this.getColor();
+    }
+
+    // Returns the int code of this piece to be used when transmitting to client.
+    code() {
+        return getPieceCode(this.name());
     }
 
     // Returns whether a square dR rows and dC columns away is an empty square.
@@ -109,9 +115,6 @@ module.exports = class Piece {
         }
         return moves;
     }
-
-    // An on-wire single number representation of this piece.
-    code() { assert.fail("Not implemented"); }
 
     // Unique human-readable name for this piece type.
     name() { assert.fail("Not implemented"); }

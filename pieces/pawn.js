@@ -1,5 +1,5 @@
 const Piece = require("./piece.js");
-const {WHITE, BLACK} = require("../game/constants.js");
+const {WHITE, BLACK} = require("../public/constants.js");
 const assert = require("assert");
 
 module.exports = class Pawn extends Piece {
@@ -11,7 +11,6 @@ module.exports = class Pawn extends Piece {
     }
 
     name() { return "pawn"; }
-    code() { return 1; }
 
     legalMoves() {
         const moves = super.legalMoves();

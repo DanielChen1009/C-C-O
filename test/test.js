@@ -11,7 +11,7 @@ const Queen = require('../pieces/queen.js');
 const King = require('../pieces/king.js');
 const Piece = require('../pieces/piece.js');
 const Position = require('../game/Position.js');
-const { WHITE, BLACK } = require("../game/constants.js");
+const { WHITE, BLACK } = require("../public/constants.js");
 const assert = require("assert");
 const fs = require("fs");
 

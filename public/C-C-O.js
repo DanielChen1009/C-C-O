@@ -2,6 +2,7 @@
 // session including Socket.IO connection, UI events, and DOM management.
 class Session {
     constructor(config) {
+        this.shared = window.shared;
         this.config = config;
         this.sessionMatchName = null;
         this.playerName = null;
@@ -73,11 +74,6 @@ class Session {
             .on("click", "#updatename", () => {
                 this.socket.emit("update name", $("#playername").val());
             });
-    }
-
-    // Returns the word corresponding to a color int.
-    getColorName(color) {
-        return parseInt(color) === 1 ? "white" : "black";
     }
 
     // Returns the DOM element for the square at position squareID (0 - 63).
@@ -184,26 +180,6 @@ class Session {
                 .sessionMatchName });
     }
 
-    // Get the piece name given the piece code received from the server.
-    getPieceName(pieceCode) {
-        switch (parseInt(pieceCode)) {
-            case 1:
-                return "pawn";
-            case 2:
-                return "knight";
-            case 3:
-                return "bishop";
-            case 4:
-                return "rook";
-            case 5:
-                return "queen";
-            case 6:
-                return "king";
-            default:
-                return null;
-        }
-    }
-
     // Returns the CSS width and height values that pieces should use.
     getSquareSize() {
         return this.config.boardSize / 8;
@@ -260,7 +236,7 @@ class Session {
                     // assign the appropriate CSS classes.
                     const pieceData = pieceCode.split(",");
                     piece.addClass("piece");
-                    piece.addClass(this.getPieceName(pieceData[0]) + this
+                    piece.addClass(this.shared.getPieceName(pieceData[0]) + this.shared
                         .getColorName(pieceData[1]));
                     // Scale the sprite sheet according to our board size.
                     piece.css("background-size", this.getBackgroundSize());

@@ -1,10 +1,9 @@
-const Piece = require("./piece.js");
-const Move = require("../game/move.js");
+const Piece = require("./piece");
+const Move = require("../game/move");
 
 module.exports = class King extends Piece {
 
     name() { return "king"; }
-    code() { return 6; }
     isTicTacToe() { return true; }
 
     legalMoves() {

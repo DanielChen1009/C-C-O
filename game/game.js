@@ -1,12 +1,12 @@
-const Pawn = require('../pieces/pawn.js');
-const Knight = require('../pieces/knight.js');
-const Bishop = require('../pieces/bishop.js');
-const Rook = require('../pieces/rook.js');
-const Queen = require('../pieces/queen.js');
-const King = require('../pieces/king.js');
-const Piece = require('../pieces/piece.js');
-const Position = require('./position.js');
-const { WHITE, BLACK, DEBUG } = require("./constants.js");
+const Pawn = require('../pieces/pawn');
+const Knight = require('../pieces/knight');
+const Bishop = require('../pieces/bishop');
+const Rook = require('../pieces/rook');
+const Queen = require('../pieces/queen');
+const King = require('../pieces/king');
+const Piece = require('../pieces/piece');
+const Position = require('./position');
+const { WHITE, BLACK, DEBUG } = require("../public/constants");
 const assert = require("assert");
 
 module.exports = class Game {

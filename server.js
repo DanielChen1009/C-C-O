@@ -5,7 +5,7 @@ const Match = require('./game/match.js');
 const Player = require('./game/player.js');
 const { uniqueNamesGenerator, NumberDictionary, adjectives, names } = require(
     'unique-names-generator');
-const { WHITE, BLACK, DEBUG } = require("./game/constants.js");
+const { WHITE, BLACK, DEBUG } = require("./public/constants.js");
 const assert = require("assert");
 
 const CORS_CONFIG = {

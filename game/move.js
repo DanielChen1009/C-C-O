@@ -1,5 +1,5 @@
-const Position = require("./position.js");
-const { WHITE, BLACK } = require("./constants.js");
+const Position = require("./position");
+const { WHITE, BLACK } = require("../public/constants");
 const assert = require("assert");
 
 module.exports = class Move {

@@ -3,7 +3,6 @@ const Piece = require("./piece.js");
 module.exports = class Rook extends Piece {
 
     name() { return "rook"; }
-    code() { return 4; }
     isTicTacToe() { return true; }
 
     legalMoves() {
