@@ -1,6 +1,8 @@
 // Run tests using "npm test"
 //
 // To add new tests, don't edit this file. Add the cases to cases.txt.
+// The only time you should edit this file is if you are adding new
+// test features like support for new pieces, new rules, etc.
 
 const Game = require("../game/game");
 const Board = require("../game/board");
@@ -10,7 +12,7 @@ const Bishop = require("../pieces/bishop");
 const Rook = require("../pieces/rook");
 const Queen = require("../pieces/queen");
 const King = require("../pieces/king");
-const Piece = require("../pieces/piece");
+const Othello = require("../pieces/othello");
 const Position = require("../game/Position");
 const { WHITE, BLACK, rowcol } = require("../public/constants");
 const assert = require("assert");
@@ -98,12 +100,14 @@ function parsePiece(pieceChar, row, col, board) {
         case 'B': return new Bishop(WHITE, row, col, board);
         case 'N': return new Knight(WHITE, row, col, board);
         case 'P': return new Pawn(WHITE, row, col, board);
+        case 'O': return new Othello(WHITE, row, col, board);
         case 'k': return new King(BLACK, row, col, board);
         case 'q': return new Queen(BLACK, row, col, board);
         case 'r': return new Rook(BLACK, row, col, board);
         case 'b': return new Bishop(BLACK, row, col, board);
         case 'n': return new Knight(BLACK, row, col, board);
         case 'p': return new Pawn(BLACK, row, col, board);
+        case 'o': return new Othello(BLACK, row, col, board);
         case '.': return null;
         default: assert.fail("Unrecognized piece char: " + pieceChar);
     }
@@ -113,6 +117,7 @@ function printPiece(piece) {
     if (!piece) return '.';
     const [code, color] = piece.split(",").map(s => parseInt(s));
     switch (code) {
+        case 7: return color === WHITE ? 'O' : 'o';
         case 6: return color === WHITE ? 'K' : 'k';
         case 5: return color === WHITE ? 'Q' : 'q';
         case 4: return color === WHITE ? 'R' : 'r';

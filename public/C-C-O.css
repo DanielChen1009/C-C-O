@@ -127,3 +127,17 @@
 .pawnblack {
     background-position: 100% 100%;
 }
+
+.othellowhite {
+    background-image: none;
+    background-color: white;
+    border: 3px solid black;
+    border-radius: 50%;
+    padding: 3px;
+}
+
+.othelloblack {
+    background-image: none;
+    background-color: black;
+    border-radius: 50%;
+}

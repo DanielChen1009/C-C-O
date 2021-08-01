@@ -24,6 +24,8 @@
                 return "queen";
             case 6:
                 return "king";
+            case 7:
+                return "othello";
             default:
                 return null;
         }
@@ -44,6 +46,8 @@
                 return 5;
             case "king":
                 return 6;
+            case "othello":
+                return 7;
             default:
                 return -1;
         }

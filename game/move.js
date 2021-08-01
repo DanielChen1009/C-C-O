@@ -16,8 +16,7 @@ module.exports = class Move {
         this.capturedPieces = new Map(); // (r,c) => Piece
 
         const directCapture = this.board.get(this.toPos.row, this.toPos.col);
-        if (directCapture) {
-            assert.notStrictEqual(directCapture.getColor(), this.piece.getColor());
+        if (directCapture && directCapture.getColor() !== this.piece.getColor()) {
             this.capturedPieces.set(this.toPos.data(), directCapture);
         }
         this.flippedPieces = []; // Flipped pieces in Othello.

@@ -4,6 +4,7 @@ const Bishop = require('../pieces/bishop');
 const Rook = require('../pieces/rook');
 const Queen = require('../pieces/queen');
 const King = require('../pieces/king');
+const Othello = require('../pieces/othello');
 const { WHITE, BLACK, DEBUG, index, rowcol } = require("../public/constants");
 const assert = require("assert");
 
@@ -60,7 +61,7 @@ module.exports = class Board {
 
 	// Adds a new piece to the board. The square must be empty.
 	add(r, c, cls, color) {
-		assert.equal(this.board[r][c], null);
+		assert.strictEqual(this.board[r][c], null);
 		const piece = new cls(color, r, c, this);
 		this.set(r, c, piece);
 	}
@@ -93,6 +94,24 @@ module.exports = class Board {
 	// Return an all pieces of a certain color.
 	pieces(color) {
 		return Array.from(this.pieceMap.get(color).values());
+	}
+
+	// Returns if the square at r,c is empty and all its touching neighbors are either
+	// empty or Othello piece.
+	isIsolated(r, c) {
+		if (!this.inBounds(r, c) || this.board[r][c]) return false;
+		const dirs = [[-1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1],[1,-1],[-1,1]];
+		for (const dir of dirs) {
+			const nr = r + dir[0];
+			const nc = c + dir[1];
+			if (!this.inBounds(nr, nc) || this.board[nr][nc] instanceof Othello) continue;
+			if (this.board[nr][nc]) return false;
+		}
+		return true;
+	}
+
+	inBounds(r, c) {
+		return r >= 0 && c >= 0 && r < 8 && c < 8;
 	}
 
 	// Checks that the pieceMap and board states are in sync.

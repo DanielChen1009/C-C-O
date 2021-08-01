@@ -4,7 +4,8 @@ const Bishop = require('../pieces/bishop');
 const Rook = require('../pieces/rook');
 const Queen = require('../pieces/queen');
 const King = require('../pieces/king');
-const Piece = require('../pieces/piece');
+const Othello = require('../pieces/othello');
+const Move = require('./move');
 const Position = require('./position');
 const Board = require('./board');
 const { WHITE, BLACK, DEBUG, getColorName } = require("../public/constants");
@@ -89,69 +90,40 @@ module.exports = class Game {
         // If it's not the current player's turn, we don't do anything.
         if (this.turn !== color) return;
 
-        const colorName = getColorName(color);
-
         // Check to see if we need to finish promoting a piece.
         if (this.promotion) {
-            // If the move does not contain a promotion choice, return and keep
-            // waiting.
-            if (!choice) return;
-            assert(r === this.promotion.position.row && c ===
-                this.promotion.position.col, "Invalid promotion");
-            const pos = this.promotion.position;
-            color = this.promotion.getColor();
-            let promotedPiece;
-            switch (choice) {
-                case "queen":
-                    promotedPiece = new Queen(color, pos.row, pos.col,
-                        this.board);
-                    break;
-                case "rook":
-                    promotedPiece = new Rook(color, pos.row, pos.col,
-                        this.board);
-                    break;
-                case "bishop":
-                    promotedPiece = new Bishop(color, pos.row, pos.col,
-                        this.board);
-                    break;
-                case "knight":
-                    promotedPiece = new Knight(color, pos.row, pos.col,
-                        this.board);
-                    break;
-                default:
-                    assert.fail("Invalid promotion piece name: " +
-                        choice);
-            }
-            this.board.delete(pos.row, pos.col);
-            this.board.set(pos.row, pos.col, promotedPiece);
-            this.boardUpdated = true;
-            this.promotion = null;
-            this.turn = this.opposite(this.turn);
-            this.checkChessResult();
-            this.checkOthelloResult();
-            this.checkTicTacToeResult();
+            this.handlePromotion(r, c, choice);
             return;
         }
 
-        // This case is where legal moves are already highlighted on the board.
+        // This case is where chess legal moves are already highlighted on the board.
         if (this.legalMoves) {
-            this.boardUpdated = this.movePiece(r, c);
-            const piece = this.board.get(r, c);
-            // This is when the user clicked on nothing.
-            if (!piece) {
-                this.legalMoves = null;
-                this.selected = null;
-            } else {
-                // This is when the user clicked on something other than the
-                // current selected piece.
-                if (piece.getColor() !== this.turn) return;
-                this.selected = piece;
-                this.legalMoves = this.selected.legalMoves();
+            // Check if the piece can move to (r,c) via chess rules. If so, returns true.
+            this.boardUpdated = this.handleChessMove(r, c);
+
+            if (!this.boardUpdated) {
+                const piece = this.board.get(r, c);
+                if (!piece) {
+                    // This is when the user clicked on a blank square. This could be an
+                    // Othello placement move.
+                    this.boardUpdated = this.handleOthelloMove(r, c);
+                    return;
+                } else {
+                    // This is when the user clicked on something other than the
+                    // current selected piece.
+                    if (piece.getColor() !== this.turn) return;
+                    this.selected = piece;
+                    this.legalMoves = this.selected.legalMoves();
+                }
             }
         } else {
             // This is where no legal moves are highlighted on the board yet.
             let piece = this.board.get(r, c);
-            if (piece && piece.getColor() !== this.turn) return;
+            if (!piece) {
+                this.boardUpdated = this.handleOthelloMove(r, c);
+                return;
+            }
+            if (piece.getColor() !== this.turn) return;
             this.selected = piece;
 
             this.legalMoves = this.selected ? this.selected.legalMoves() : null;
@@ -164,9 +136,9 @@ module.exports = class Game {
         }
     }
 
-    // Checks whether the piece can move to r,c. If so, apply the move and
-    // return true, else false.
-    movePiece(r, c) {
+    // Checks whether the piece can move to r,c via chess legal moves.
+    // If so, apply the move and return true, else false.
+    handleChessMove(r, c) {
         for (let move of this.legalMoves) {
             if (!move.toPos.equals(r, c)) continue;
             this.selected.moved = true;
@@ -182,7 +154,7 @@ module.exports = class Game {
             // If we are promoting, the player needs to move again.
             // Otherwise give the turn to the other player.
             this.turn = this.promotion ? this.turn : this.opposite(this.turn);
-            
+
             // Check whether the game is over.
             this.checkChessResult();
             this.checkOthelloResult();
@@ -190,6 +162,69 @@ module.exports = class Game {
             return true;
         }
         return false;
+    }
+
+    // Handles an Othello placement move. Players can only place Othello pieces on
+    // empty squares that don't have Chess pieces touching them in any direction.
+    // Returns true if a piece has been successfully placed.
+    handleOthelloMove(r, c) {
+        if (!this.board.isIsolated(r, c)) return false;
+
+        this.legalMoves = null;
+        this.selected = null;
+
+        // Place the piece down. We use the Move class since we want it to do
+        // the Othello flips on other Othello pieces as well.
+        const piece = new Othello(this.turn, r, c, this.board);
+        this.board.set(r, c, piece);
+        const move = new Move(new Position(r, c), piece);
+        move.apply();
+
+        if (this.checkForCheck(this.turn)) {
+            move.undo();
+            // If after the move we are in check, we cannot do this move. Undo it.
+            this.board.delete(r, c);
+            return false;
+        } else {
+            // Otherwise, pass the turn.
+            this.turn = this.opposite(this.turn);
+            this.board.pieces(this.turn).forEach(piece => piece.onPassTurn(this.turn));
+            return true;
+        }
+    }
+
+    handlePromotion(r, c, choice) {
+        // If the move does not contain a promotion choice, no point processing.
+        if (!choice) return;
+        assert(r === this.promotion.position.row && c ===
+            this.promotion.position.col, "Invalid promotion");
+        const pos = this.promotion.position;
+        const color = this.promotion.getColor();
+        let promotedPiece;
+        switch (choice) {
+            case "queen":
+                promotedPiece = new Queen(color, pos.row, pos.col, this.board);
+                break;
+            case "rook":
+                promotedPiece = new Rook(color, pos.row, pos.col, this.board);
+                break;
+            case "bishop":
+                promotedPiece = new Bishop(color, pos.row, pos.col, this.board);
+                break;
+            case "knight":
+                promotedPiece = new Knight(color, pos.row, pos.col, this.board);
+                break;
+            default:
+                assert.fail("Invalid promotion piece name: " + choice);
+        }
+        this.board.delete(pos.row, pos.col);
+        this.board.set(pos.row, pos.col, promotedPiece);
+        this.boardUpdated = true;
+        this.promotion = null;
+        this.turn = this.opposite(this.turn);
+        this.checkChessResult();
+        this.checkOthelloResult();
+        this.checkTicTacToeResult();
     }
 
     // This trims away the legal moves that causes the own king to be in check.
