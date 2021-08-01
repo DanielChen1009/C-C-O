@@ -12,6 +12,10 @@ const assert = require("assert");
 
 module.exports = class Game {
     constructor() {
+        this.reset();
+    }
+
+    reset() {
         this.turn = WHITE;
         this.selected = null; // Selected piece.
         this.board = new Board();
@@ -22,13 +26,13 @@ module.exports = class Game {
 
         // Tic-tac-toe center.
         this.tttCenter = new Position(this.randomInteger(3, 4),
-                                      this.randomInteger(1, 6));
+            this.randomInteger(1, 6));
 
         this.lastMove = null; // Either a Move or null;
         this.promotion = null; // Either a Piece to be promoted or null.
 
         // Either a color code for who won, or 0 for draw. Null means not ended.
-        this.result = null; 
+        this.result = null;
         this.resultReason = null; // The string indicating why the game ended.
     }
 
@@ -68,6 +72,7 @@ module.exports = class Game {
             ret.result = this.result;
             ret.resultReason = this.resultReason;
         }
+        ret.turn = this.turn;
         return ret;
     }
 

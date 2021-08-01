@@ -2,6 +2,11 @@
     margin-top: 5px;
 }
 
+.fixed {
+    display: flex;
+    flex-wrap: wrap;
+}
+
 .board {
     border-collapse: collapse;
     border-spacing: 0;

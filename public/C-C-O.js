@@ -15,8 +15,7 @@ class Session {
         this.boardOrientation = 1;
         this.promotionDialog = $("<div>");
         this.showingPromotionDialog = false;
-        this.progressbar = $("<div>")
-            .progressbar({ value: false });
+        this.progressbar = $("<div>").progressbar({ value: false });
         this.buildBoard();
     }
 
@@ -93,6 +92,11 @@ class Session {
     // Shows a title string on the top of the board.
     showBoardTitle(msg) {
         $("#boardtitle").text(msg);
+    }
+
+    // Shows a status string at the bottom of the board.
+    showStatus(msg) {
+        $("#status").text(msg);
     }
 
     // Renders the match list in the lobby based on server-sent data.
@@ -185,18 +189,34 @@ class Session {
 
     // Renders pieces and other misc state onto the board.
     renderMatchState(state) {
-        if (state.matchName !== undefined) this.sessionMatchName = state
-            .matchName;
-        if (state.result !== undefined) {
-            this.showEvent(state.resultReason,
-                "You " + (state.result === state.yourColor ? "win" : "lose"));
+        if (state.matchName !== undefined) this.sessionMatchName = state.matchName;
+
+        let singlePlayer = false;
+        if (state.hostName === state.guestName) {
+            this.showBoardTitle("Play yourself here or join match");
+            this.showStatus("Single player mode. You play both sides.");
+            singlePlayer = true;
+        }
+        else if (state.hostName === this.playerName && !state.guestName) {
+            this.showBoardTitle("Waiting for opponent");
+        }
+        else {
+            this.showBoardTitle(state.hostName + " vs " + state.guestName);
         }
 
-        if (state.hostName === state.guestName) this.showBoardTitle(
-            "Play yourself here or join match");
-        else if (state.hostName === this.playerName && !state.guestName)
-            this.showBoardTitle("Waiting for opponent");
-        else this.showBoardTitle(state.hostName + " vs " + state.guestName);
+        if (state.result !== undefined) {
+            const winMsg = state.result === state.yourColor ? "win" : "lose";
+            this.showEvent(state.resultReason, "You " + winMsg);
+            this.showStatus("The game is over! You " + winMsg + ": " + state.resultReason + ". "
+                + (singlePlayer ? "Click board to restart." : "Press Leave on right to leave match."));
+        }
+        else if (!singlePlayer) {
+            if (state.yourColor !== state.turn) {
+                this.showStatus("Waiting for opponent to move.");
+            } else {
+                this.showStatus("It is your turn to move.");
+            }
+        }
 
         this.setBoardOrientation(state.yourColor);
 
@@ -298,6 +318,7 @@ class Session {
         content.addClass("board");
         content.width(this.config.boardSize);
         content.height(this.config.boardSize);
+        $(".fixed").width(this.config.boardSize);
         for (let i = 0; i < 8; i++) {
             let row = $("<tr>");
             for (let j = 0; j < 8; j++) {
@@ -333,7 +354,7 @@ class Session {
             content.append(row);
         }
 
-        $("#" + this.config.boardContainerId).append(this.progressbar)
+        $("#" + this.config.boardContainerId).empty().append(this.progressbar)
             .append(content);
     }
 

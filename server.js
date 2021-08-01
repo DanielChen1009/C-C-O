@@ -126,8 +126,13 @@ io.on("connection", (socket) => {
             else if (player.hostedMatch && player.hostedMatch.guest)
                 match = player.hostedMatch;
             else {
-                player.personalMatch.game.handleInput(input.row, input.col,
-                    player.personalMatch.game.turn, input.choice);
+                // If the game is over, any further input resets the personal game.
+                if (player.personalMatch.game.result !== null) {
+                    player.personalMatch.game.reset();
+                } else {
+                    player.personalMatch.game.handleInput(input.row, input.col,
+                        player.personalMatch.game.turn, input.choice);
+                }
                 player.personalMatch.emit();
                 return;
             }
