@@ -1,3 +1,5 @@
+const { index } = require("../public/constants");
+
 module.exports = class Position {
     constructor(r, c) {
         this.row = r;
@@ -13,7 +15,7 @@ module.exports = class Position {
     }
 
     data() {
-        return this.row * 8 + this.col;
+        return index(this.row, this.col);
     }
 
     copy() {

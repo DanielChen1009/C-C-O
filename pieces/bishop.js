@@ -3,7 +3,6 @@ const Piece = require("./piece");
 module.exports = class Bishop extends Piece {
 
     name() { return "bishop"; }
-    code() { return 3; }
 
     legalMoves() {
         const moves = super.legalMoves();

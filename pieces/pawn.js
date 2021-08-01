@@ -1,5 +1,5 @@
-const Piece = require("./piece.js");
-const {WHITE, BLACK} = require("../public/constants.js");
+const Piece = require("./piece");
+const {WHITE, BLACK} = require("../public/constants");
 const assert = require("assert");
 
 module.exports = class Pawn extends Piece {
@@ -44,7 +44,7 @@ module.exports = class Pawn extends Piece {
                 const piece = this.getPiece(0, hdir);
                 if (piece && piece instanceof Pawn && piece.enpassantable > 0) {
                     const move = this.createMove(vdir, hdir);
-                    move.capturedPieces.set(piece.position, piece);
+                    move.capturedPieces.set(piece.position.data(), piece);
                     moves.push(move);
                 }
             }

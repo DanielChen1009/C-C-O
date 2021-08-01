@@ -2,16 +2,17 @@
 //
 // To add new tests, don't edit this file. Add the cases to cases.txt.
 
-const Game = require("../game/Game.js");
-const Pawn = require('../pieces/pawn.js');
-const Knight = require('../pieces/knight.js');
-const Bishop = require('../pieces/bishop.js');
-const Rook = require('../pieces/rook.js');
-const Queen = require('../pieces/queen.js');
-const King = require('../pieces/king.js');
-const Piece = require('../pieces/piece.js');
-const Position = require('../game/Position.js');
-const { WHITE, BLACK } = require("../public/constants.js");
+const Game = require("../game/game");
+const Board = require("../game/board");
+const Pawn = require("../pieces/pawn");
+const Knight = require("../pieces/knight");
+const Bishop = require("../pieces/bishop");
+const Rook = require("../pieces/rook");
+const Queen = require("../pieces/queen");
+const King = require("../pieces/king");
+const Piece = require("../pieces/piece");
+const Position = require("../game/Position");
+const { WHITE, BLACK, rowcol } = require("../public/constants");
 const assert = require("assert");
 const fs = require("fs");
 
@@ -28,20 +29,20 @@ function parseTestCase(testCaseStr) {
         const sectionBody = lines.splice(1);
         switch (sectionName) {
             case "TEST NAME":
-                assert.equal(sectionBody.length, 1);
+                assert.strictEqual(sectionBody.length, 1);
                 testCase.name = sectionBody[0];
                 break;
             case "BOARD":
-                assert.equal(sectionBody.length, 8);
+                assert.strictEqual(sectionBody.length, 8);
                 testCase.game.board = parseBoard(sectionBody);
                 break;
             case "TICTACTOE":
-                assert.equal(sectionBody.length, 1);
+                assert.strictEqual(sectionBody.length, 1);
                 const [r, c] = sectionBody[0].split(",").map(s => parseInt(s));
                 testCase.game.tttCenter = new Position(r, c);
                 break;
             case "TURN":
-                assert.equal(sectionBody.length, 1);
+                assert.strictEqual(sectionBody.length, 1);
                 assert.match(sectionBody[0], /(white|black)/);
                 testCase.game.turn = (sectionBody[0] === "white" ? WHITE : BLACK);
                 break;
@@ -57,11 +58,11 @@ function parseTestCase(testCaseStr) {
                 break;
             case "EXPECTED BOARD":
                 if (sectionBody.length === 1) {
-                    assert.equal(sectionBody[0], "unchanged");
+                    assert.strictEqual(sectionBody[0], "unchanged");
                     testCase.expectedBoard = testCase.board;
                 }
                 else {
-                    assert.equal(sectionBody.length, 8);
+                    assert.strictEqual(sectionBody.length, 8);
                     testCase.expectedBoard = sectionBody.join("\n");
                 }
                 break;
@@ -123,11 +124,13 @@ function printPiece(piece) {
 }
 
 function parseBoard(boardLines) {
-    const board = new Array(8).fill(null).map(() => new Array(8).fill(null));
+    const board = new Board();
+    board.reset();
     for (let row = 0; row < 8; row++) {
         for (let col = 0; col < 8; col++) {
             const char = boardLines[row].charAt(col);
-            board[row][col] = parsePiece(char, row, col, board);
+            const piece = parsePiece(char, row, col, board);
+            if (piece) board.set(row, col, piece);
         }
     }
     return board;
@@ -145,15 +148,15 @@ function printBoard(board) {
 }
 
 function toRC(pos) {
-    return [Math.floor(pos / 8), pos % 8]
+    return [rowcol(pos).row, rowcol(pos).col];
 }
 
 describe("C-C-O tests", () => {
-    tests = fs.readFileSync("test/cases.txt", "utf8").split("=======================\n=======================");
+    const tests = fs.readFileSync("test/cases.txt", "utf8").split(
+        "=======================\n=======================");
   
     for (const test of tests) {
         const testCase = parseTestCase(test);
-
         it(testCase.name, () => {
             for (const color of [WHITE, BLACK]) {
                 let data = testCase.game.data([color]);
@@ -161,7 +164,7 @@ describe("C-C-O tests", () => {
                 // If a board state expectation is set, check it against the real returned data.
                 if (testCase.expectedBoard) {
                     assert(data.board, "No board found in data!");
-                    assert.equal(printBoard(data.board), testCase.expectedBoard, "Board not equal!");
+                    assert.strictEqual(printBoard(data.board), testCase.expectedBoard, "Board not equal!");
                 }
                 const expectedData = testCase.expectedData.get(color);
                 if (!expectedData) continue;
@@ -173,13 +176,13 @@ describe("C-C-O tests", () => {
                         "data has no field [" + key + "]:\n" + JSON.stringify(data, null, 2));
                     switch (key) {
                         case "legalMoves":
-                            assert.deepEqual(data.legalMoves.map(m => toRC(m)), value);
+                            assert.deepStrictEqual(data.legalMoves.map(m => toRC(m)), value);
                             break;
                         case "selected":
-                            assert.deepEqual(toRC(data.selected), value);
+                            assert.deepStrictEqual(toRC(data.selected), value);
                             break;
                         default:
-                            assert.deepEqual(data[key], value);
+                            assert.deepStrictEqual(data[key], value);
                     }
                 }
             }

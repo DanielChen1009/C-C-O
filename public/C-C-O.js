@@ -35,7 +35,7 @@ class Session {
         });
         this.socket.on("message", (msg) => {
             this.showEvent(msg, "Info");
-        });
+        }); 
         this.socket.on("player info", (name) => {
             this.playerName = name;
             $("#playername").val(this.playerName);
@@ -79,14 +79,6 @@ class Session {
     // Returns the DOM element for the square at position squareID (0 - 63).
     square(squareID) {
         return $("#" + squareID);
-    }
-
-    // Returns row, col (0 - 7 each) in the grid given squareID.
-    toRC(squareID) {
-        return {
-            r: Math.floor(squareID / 8),
-            c: squareID % 8
-        }
     }
 
     // Shows one entry in the event log.
@@ -175,8 +167,8 @@ class Session {
     }
 
     handleClick(squareID) {
-        const rc = this.toRC(squareID);
-        this.socket.emit('input', { row: rc.r, col: rc.c, matchName: this
+        const rc = this.shared.rowcol(squareID);
+        this.socket.emit('input', { row: rc.row, col: rc.col, matchName: this
                 .sessionMatchName });
     }
 
@@ -211,7 +203,7 @@ class Session {
         if (state.board) {
             for (let i = 0; i < 8; i++) {
                 for (let j = 0; j < 8; j++) {
-                    const squareID = i * 8 + j;
+                    const squareID = this.shared.index(i, j);
                     const square = this.square(squareID);
                     square.empty();
                     square.width(this.config.boardSize / 8);
@@ -250,10 +242,10 @@ class Session {
             this.square(i).children(".ttt").remove();
         }
         if (state.tttCenter !== undefined) {
-            const rc = this.toRC(state.tttCenter);
+            const rc = this.shared.rowcol(state.tttCenter);
             for (let r = -1; r <= 1; r++) {
                 for (let c = -1; c <= 1; c++) {
-                    const squareID = 8*(rc.r + r) + rc.c + c;
+                    const squareID = this.shared.index(rc.r + r, rc.c + c);
                     this.square(squareID).append($("<div>").addClass("ttt"));
                 }
             }
@@ -309,7 +301,7 @@ class Session {
         for (let i = 0; i < 8; i++) {
             let row = $("<tr>");
             for (let j = 0; j < 8; j++) {
-                const squareID = i * 8 + j;
+                const squareID = this.shared.index(i, j);
                 const cell = $("<td>");
                 const square = $("<div>").addClass("square").attr("id",
                     squareID);
@@ -347,10 +339,10 @@ class Session {
 
     // Returns the x, y position of the given element's center.
     getCenter(squareID) {
-        const rc = this.toRC(squareID);
+        const rc = this.shared.rowcol(squareID);
         return {
-            x: (2 * rc.c + 1) * this.config.boardSize / 16,
-            y: (2 * (this.boardOrientation === 1 ? rc.r : 7 - rc.r) + 1) *
+            x: (2 * rc.col + 1) * this.config.boardSize / 16,
+            y: (2 * (this.boardOrientation === 1 ? rc.row : 7 - rc.row) + 1) *
                 this.config.boardSize / 16
         };
     }
@@ -407,12 +399,12 @@ class Session {
     showPromotionDialog(squareID, color) {
         this.promotionDialog.empty();
         const pieceNames = ["queen", "rook", "bishop", "knight"];
-        const rc = this.toRC(squareID);
+        const rc = this.shared.rowcol(squareID);
         for (const pieceName of pieceNames) {
             const piece = $("<div>")
-                .addClass("piece " + pieceName + this.getColorName(color));
+                .addClass("piece " + pieceName + this.shared.getColorName(color));
             piece.on("click", () => {
-                this.socket.emit('input', { row: rc.r, col: rc.c,
+                this.socket.emit('input', { row: rc.row, col: rc.col,
                     choice: pieceName, matchName: this.sessionMatchName });
                 this.promotionDialog.dialog("close");
                 this.showingPromotionDialog = false;

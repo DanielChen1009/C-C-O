@@ -1,4 +1,4 @@
-const Piece = require("./piece.js");
+const Piece = require("./piece");
 
 module.exports = class Queen extends Piece {
 
@@ -7,7 +7,8 @@ module.exports = class Queen extends Piece {
 
     legalMoves() {
         const moves = super.legalMoves();
-        const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1],
+        const dirs = [
+            [1, 0], [-1, 0], [0, 1], [0, -1],
             [1, 1], [1, -1], [-1, 1], [-1, -1]
         ];
         return moves.concat(this.getStraightMoves(dirs));

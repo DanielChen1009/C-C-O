@@ -11,7 +11,7 @@ module.exports = class Piece {
         // r is for row, c is column.
         this.position = new Position(r, c);
         this.selected = false;
-        this.pieceBoard = board;
+        this.board = board;
         this.moved = false;
     }
 
@@ -32,7 +32,7 @@ module.exports = class Piece {
 
         if (r > 7 || r < 0) return false;
         if (c > 7 || c < 0) return false;
-        return !this.pieceBoard[r][c];
+        return !this.board.get(r, c);
     }
 
     // Returns the piece at a position dR rows and dC columns away, or null if
@@ -43,7 +43,7 @@ module.exports = class Piece {
 
         if (r > 7 || r < 0) return null;
         if (c > 7 || c < 0) return null;
-        const piece = this.pieceBoard[r][c];
+        const piece = this.board.get(r, c);
         assert(!piece || piece instanceof Piece,
                "getPiece returned a non-null and non-Piece");
         return piece;
@@ -90,25 +90,25 @@ module.exports = class Piece {
             let nr = r + vdir;
             let nc = c + hdir;
             if (nr < 0 || nr >= 8 || nc < 0 || nc >= 8) continue;
-            const piece = this.pieceBoard[nr][nc];
+            const piece = this.board.get(nr, nc);
             if (!this.isEnemy(piece)) continue;
             nr += vdir;
             nc += hdir;
             if (nr < 0 || nr >= 8 || nc < 0 || nc >= 8) continue;
             if (visited.get({nr, nc})) continue;
             visited.set({r, c}, true);
-            if (!this.pieceBoard[nr][nc]) {
+            if (!this.board.get(nr, nc)) {
                 let checkersMoves = this.getCheckersMoves(nr, nc, visited)
                 if (checkersMoves.length > 0) {
                     for (let move of checkersMoves) {
-                        move.capturedPieces.set(piece.position.copy(), piece);
+                        move.capturedPieces.set(piece.position.data(), piece);
                         move.checkpoints.push(new Position(nr, nc));
                         moves.push(move);
                         visited.set({nr, nc}, true);
                     }
                 } else {
                     const move = new Move(new Position(nr, nc), this);
-                    move.capturedPieces.set(piece.position.copy(), piece);
+                    move.capturedPieces.set(piece.position.data(), piece);
                     moves.push(move);
                 }
             }

@@ -49,12 +49,27 @@
         }
     }
 
+    // Get the 0-63 index of the square at (row, col)
+    function index(row, col) {
+        return row * 8 + col;
+    }
+
+    // Returns row, col (0 - 7 each) in the grid given 0-63 index.
+    function rowcol(idx) {
+        return {
+            row: Math.floor(idx / 8),
+            col: idx % 8
+        }
+    }
+
     exports.WHITE = WHITE;
     exports.BLACK = BLACK;
     exports.DEBUG = DEBUG;
     exports.getColorName = getColorName;
     exports.getPieceName = getPieceName;
     exports.getPieceCode = getPieceCode;
+    exports.index = index;
+    exports.rowcol = rowcol;
 
 })(typeof exports === 'undefined'? 
             this['shared']={}: exports);

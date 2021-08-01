@@ -1,11 +1,11 @@
 const express = require('express');
 const socketio = require('socket.io');
 const cors = require('cors');
-const Match = require('./game/match.js');
-const Player = require('./game/player.js');
+const Match = require('./game/match');
+const Player = require('./game/player');
 const { uniqueNamesGenerator, NumberDictionary, adjectives, names } = require(
     'unique-names-generator');
-const { WHITE, BLACK, DEBUG } = require("./public/constants.js");
+const { WHITE, BLACK, DEBUG } = require("./public/constants");
 const assert = require("assert");
 
 const CORS_CONFIG = {

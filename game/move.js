@@ -1,5 +1,5 @@
 const Position = require("./position");
-const { WHITE, BLACK } = require("../public/constants");
+const { WHITE, BLACK, rowcol } = require("../public/constants");
 const assert = require("assert");
 
 module.exports = class Move {
@@ -8,20 +8,24 @@ module.exports = class Move {
             "Move ctor called with a non-Position");
         this.toPos = pos;
         this.piece = piece;
-        this.fromPos = this.piece.position;
+        this.fromPos = this.piece.position.copy();
         // Positions between fromPos and toPos the piece moves through.
         this.checkpoints = []; 
-        this.board = this.piece.pieceBoard;
+        this.board = this.piece.board;
 
         this.capturedPieces = new Map(); // (r,c) => Piece
-        this.capturedPieces.set(this.toPos,
-            this.board[this.toPos.row][this.toPos.col]);
-        this.flippedPieces = []; // Flipped pieces in Othello.
 
+        const directCapture = this.board.get(this.toPos.row, this.toPos.col);
+        if (directCapture) {
+            assert.notStrictEqual(directCapture.getColor(), this.piece.getColor());
+            this.capturedPieces.set(this.toPos.data(), directCapture);
+        }
+        this.flippedPieces = []; // Flipped pieces in Othello.
         this.childMove = null; // A child move to this move.
         this.checkOthelloFlips();
     }
 
+    // Returns serialized representation of this move, to be sent to client.
     data() {
         return this.toPos.data();
     }
@@ -32,39 +36,67 @@ module.exports = class Move {
     }
 
     apply() {
-        for (const [pos, piece] of this.capturedPieces) {
-            this.board[pos.row][pos.col] = null;
-        }
+        // Flip all flipped pieces to this piece's color.
         for (const piece of this.flippedPieces) {
+            this.board.delete(piece.position.row, piece.position.col);
             piece.color = this.piece.getColor();
+            this.board.set(piece.position.row, piece.position.col, piece);
         }
+
+        // Delete all captured pieces.
+        for (const [idx, piece] of this.capturedPieces) {
+            assert(idx >= 0 && idx <= 63, "Invalid index: " + idx);
+            const rc = rowcol(idx);
+            this.board.delete(rc.row, rc.col);
+        }
+
+        // Perform child moves, if any.
         if (this.childMove) this.childMove.apply();
-        this.board[this.toPos.row][this.toPos.col] = this.piece;
-        this.board[this.piece.position.row][this.piece.position.col] = null;
-        this.fromPos = this.piece.position.copy();
+
+        // Delete this piece from the original location.
+        this.board.delete(this.piece.position.row, this.piece.position.col);
+
+        // Put this at the destination location.
         this.piece.position = this.toPos.copy();
+        this.board.set(this.toPos.row, this.toPos.col, this.piece);
+
+        // Give the piece a chance to run code after the apply is done.
         this.piece.onApplyMove(this);
     }
 
     undo() {
-        for (const [pos, piece] of this.capturedPieces) {
-            this.board[pos.row][pos.col] = piece;
-        }
-        this.capturedPieces.delete(this.toPos);
-        for (const piece of this.flippedPieces) {
-            piece.color = piece.getColor() === WHITE ? BLACK : WHITE;
-        }
-        if (this.childMove) this.childMove.undo();
+        // Delete this piece from the current location.
+        this.board.delete(this.piece.position.row, this.piece.position.col);
+
+        // Move the piece back to the original place.
         this.piece.position = this.fromPos.copy();
-        this.board[this.piece.position.row][this.piece.position.col] =
-            this.piece;
+        this.board.set(this.piece.position.row, this.piece.position.col, this.piece);
+
+        // Undo children moves, if any.
+        if (this.childMove) this.childMove.undo();
+
+        // Then put all captured pieces back.
+        for (const [idx, piece] of this.capturedPieces) {
+            const rc = rowcol(idx);
+            this.board.set(rc.row, rc.col, piece);
+        }
+
+        // Un-flip all flipped pieces.
+        for (const piece of this.flippedPieces) {
+            this.board.delete(piece.position.row, piece.position.col);
+            piece.color = this.piece.getColor() === WHITE ? BLACK : WHITE;
+            this.board.set(piece.position.row, piece.position.col, piece);
+        }
+
+        // Give the piece a chance to run code after the undo is done.
         this.piece.onUndoMove(this);
     }
 
+    // Returns whether this move captures the opponents king.
     capturesKing() {
         for (const [pos, piece] of this.capturedPieces) {
-            if (piece && (piece.name() === "king" && piece .getColor()
-                !== this.piece.getColor())) {
+            assert(piece);
+            if (piece.name() === "king" && piece.getColor() !== this.piece.getColor()) {
                 return true;
             }
         }
@@ -83,7 +115,7 @@ module.exports = class Move {
             while (true) {
                 newPos = newPos.add(dir[0], dir[1]);
                 if (newPos.outOfBound()) break;
-                const piece = this.board[newPos.row][newPos.col];
+                const piece = this.board.get(newPos.row, newPos.col);
                 if (!piece) break;
                 if (piece.isEnemy(this.piece)) flips.push(piece);
                 else {

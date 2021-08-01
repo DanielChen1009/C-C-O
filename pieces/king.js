@@ -32,7 +32,7 @@ module.exports = class King extends Piece {
     getCastleKingsideMove() {
         if (this.moved) return null;
         if (!this.isEmptySquare(0, 1) || !this.isEmptySquare(0, 2)) return null;
-        const rook = this.pieceBoard[this.position.row][this.position.col + 3];
+        const rook = this.board.get(this.position.row, this.position.col + 3);
         if (!rook || rook.moved) return null;
         const move = new Move(this.position.add(0, 2), this);
         move.childMove = new Move(this.position.add(0, 1), rook);
@@ -45,7 +45,7 @@ module.exports = class King extends Piece {
         if (!this.isEmptySquare(0, -1) || 
             !this.isEmptySquare(0, -2) || 
             !this.isEmptySquare(0, -3)) return null;
-        const rook = this.pieceBoard[this.position.row][this.position.col - 4];
+        const rook = this.board.get(this.position.row, this.position.col - 4);
         if (!rook || rook.moved) return null;
         const move = new Move(this.position.add(0, -2), this);
         move.childMove = new Move(this.position.add(0, -1), rook);
