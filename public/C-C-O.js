@@ -368,8 +368,18 @@ class Session {
         };
     }
 
+    // Returns the vertically mirrored square id to the given one.
+    mirror(squareId) {
+        const rc = this.shared.rowcol(squareId);
+        return this.shared.index(rc.row, 7 - rc.col);
+    }
+
     // This draws an arrow between square IDs "from" and "to".
     drawArrow(from, to) {
+        if (this.boardOrientation === this.shared.BLACK) {
+            from = this.mirror(from);
+            to = this.mirror(to);
+        }
         from = this.getCenter(from);
         to = this.getCenter(to);
 
