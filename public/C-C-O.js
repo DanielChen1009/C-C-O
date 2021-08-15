@@ -261,11 +261,11 @@ class Session {
             this.square(i).children(".selected").remove();
             this.square(i).children(".ttt").remove();
         }
-        if (state.tttCenter !== undefined) {
+        if (state.tttCenter) {
             const rc = this.shared.rowcol(state.tttCenter);
             for (let r = -1; r <= 1; r++) {
                 for (let c = -1; c <= 1; c++) {
-                    const squareID = this.shared.index(rc.r + r, rc.c + c);
+                    const squareID = this.shared.index(rc.row + r, rc.col + c);
                     this.square(squareID).append($("<div>").addClass("ttt"));
                 }
             }
