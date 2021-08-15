@@ -492,3 +492,22 @@ white
 ........
 ........
 ...K....
+=======================
+=======================
+> TEST NAME
+Can convert an enemy king via Othello even when it would be under check after conversion.
+> BOARD
+r.......
+....kp.O
+.p......
+poN.OB.P
+.b...P.N
+.......P
+pPK.P...
+...R.BNR
+> TURN
+black
+> INPUTS
+4,1
+> EXPECTED DATA SENT TO BLACK
+legalMoves=[[5,2],[6,3],[7,4],[5,0],[3,2]]

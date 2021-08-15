@@ -331,6 +331,9 @@ module.exports = class Game {
 
     // Checks whether the given color's king is in check.
     checkForCheck(color) {
+        if (this.board.pieces(color).filter(piece => piece instanceof King).length > 1) {
+            return false;
+        }
         const pieces = this.board.pieces(this.opposite(color));
         for (let piece of pieces) {
             if (piece.legalMoves().some(move => move.capturesKing())) return true;
