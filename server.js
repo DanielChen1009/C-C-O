@@ -273,3 +273,5 @@ io.on("connection", (socket) => {
         emitMatches();
     });
 });
+
+module.exports = app;
